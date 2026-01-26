@@ -1,0 +1,9 @@
+{
+  "name": "GLM Chat",
+  "short_name": "GLM Chat",
+  "start_url": ".",
+  "display": "standalone",
+  "background_color": "#0B1120",
+  "theme_color": "#60A5FA",
+  "description": "GLM Chat - Flutter приложение для общения с GLM 4.7"
+}
