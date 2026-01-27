@@ -311,3 +311,92 @@ Material 3 dark theme configured in `lib/core/theme/app_theme.dart`. App uses `t
 - **ESC** - Cancel editing without sending
 - **SHIFT+ENTER** - New line
 - Click ❌ button - Cancel editing
+
+---
+
+## Known Issues & Technical Debt
+
+### Critical Issues (2026-01-28)
+
+1. **Тестовый файл ошибочен** - `test/widget_test.dart:7`
+   - Проблема: отсутствует импорт `flutter_riverpod/flutter_riverpod.dart`
+   - Исправление: добавить импорт `import 'package:flutter_riverpod/flutter_riverpod.dart';`
+
+2. **Типизация в MessageBubble** - `lib/widgets/chat/message_bubble.dart`
+   - Проблема: методы `_buildAttachedFile` и `_buildFileIcon` используют `dynamic file` вместо `AttachedFile`
+   - Исправление: заменить `dynamic` на `AttachedFile`
+
+3. **Неиспользуемый импорт** - `lib/widgets/chat/chat_screen.dart:3`
+   - Проблема: импортируется `message.dart`, но не используется
+   - Исправление: удалить импорт
+
+### Performance Issues
+
+4. **Лишние пересборки** в `ChatInputField` при добавлении файлов
+   - Частые вызовы `setState` могут влиять на производительность
+   - Решение: использовать `setState` только при необходимости
+
+5. **Большие файлы**
+   - Нет ограничения на размер загружаемых файлов
+   - Риск: утечка памяти при загрузке очень больших файлов
+   - Решение: добавить ограничение (например, 10MB)
+
+6. **Блокирующие операции**
+   - Чтение файлов в `getTextContent()` может блокировать UI поток
+   - Решение: использовать `compute()` для чтения в изолированном потоке
+
+### Deprecated APIs
+
+7. **Устаревшие API клавиатуры** - `lib/widgets/chat/chat_input_field.dart`
+   - `RawKeyEvent`, `RawKeyDownEvent` → использовать `KeyEvent`, `KeyDownEvent`
+   - `isShiftPressed` → использовать `HardwareKeyboard.instance.isShiftPressed`
+   - `RawKeyboardListener` → использовать `KeyboardListener`
+
+8. **Устаревший API цветов** - несколько файлов
+   - `withOpacity()` → использовать `.withValues()`
+   - Затронуты: `chat_input_field.dart`, `chat_screen.dart`
+
+### Code Quality
+
+9. **Отсутствие блоков** - `lib/data/models/attached_file.dart`
+   - Строки 81, 93, 99, 105, 109, 113 - управляющие структуры без фигурных скобок
+   - Рекомендация: добавлять блоки для улучшения читаемости
+
+10. **Комментарии не на русском**
+    - Некоторые файлы содержат комментарии на английском (например, `api_constants.dart`)
+    - Требование согласно CLAUDE.md: все комментарии на русском
+
+### Dependencies
+
+11. **Устаревшие пакеты**
+    - 18 пакетов имеют более новые версии
+    - Пакет `flutter_markdown` прекращён, заменён на `flutter_markdown_plus`
+
+### Testing
+
+12. **Минимальное покрытие тестами**
+    - Только один тестовый файл
+    - Нет тестов для API сервисов, провайдеров, обработки ошибок
+    - Рекомендация: добавить unit и widget тесты
+
+### Security Considerations
+
+13. **Логирование чувствительных данных**
+    - `attached_file.dart:174` и `message.dart:51` логируются имена файлов
+    - Риск: имена файлов могут содержать чувствительную информацию
+    - Решение: убрать или анонимизировать логирование
+
+14. **Нет валидации файлов**
+    - Загрузка произвольных файлов без ограничений
+    - Риск: потенциальная уязвимость безопасности
+    - Решение: добавить валидацию типа и размера
+
+### Architecture
+
+15. **Потенциальная утечка памяти** в `ChatNotifier`
+    - `StreamSubscription? _streamSubscription` может быть не отменён
+    - Решение: проверить dispose на null
+
+16. **Race condition**
+    - При быстрой последовательной отправке сообщений возможны конфликты
+    - Deep copy в `chat_provider.dart:111` может не предотвратить все проблемы
