@@ -78,7 +78,9 @@ class AttachedFile {
     if (extension.endsWith('.java')) return 'text/x-java-source';
     if (extension.endsWith('.cpp') ||
         extension.endsWith('.cc') ||
-        extension.endsWith('.cxx')) return 'text/x-c++src';
+        extension.endsWith('.cxx')) {
+      return 'text/x-c++src';
+    }
     if (extension.endsWith('.c')) return 'text/x-csrc';
     if (extension.endsWith('.h')) return 'text/x-chdr';
     if (extension.endsWith('.cs')) return 'text/x-csharp';
@@ -89,28 +91,33 @@ class AttachedFile {
     if (extension.endsWith('.swift')) return 'text/x-swift';
     if (extension.endsWith('.kt')) return 'text/x-kotlin';
     if (extension.endsWith('.scala')) return 'text/x-scala';
-    if (extension.endsWith('.sh') || extension.endsWith('.bash'))
+    if (extension.endsWith('.sh') || extension.endsWith('.bash')) {
       return 'text/x-shellscript';
+    }
     if (extension.endsWith('.zsh')) return 'text/x-zsh';
     if (extension.endsWith('.fish')) return 'text/x-fish';
     if (extension.endsWith('.ps1')) return 'text/x-powershell';
     if (extension.endsWith('.sql')) return 'text/x-sql';
-    if (extension.endsWith('.html') || extension.endsWith('.htm'))
+    if (extension.endsWith('.html') || extension.endsWith('.htm')) {
       return 'text/html';
+    }
     if (extension.endsWith('.css')) return 'text/css';
     if (extension.endsWith('.scss')) return 'text/x-scss';
     if (extension.endsWith('.sass')) return 'text/x-sass';
     if (extension.endsWith('.less')) return 'text/x-less';
-    if (extension.endsWith('.yaml') || extension.endsWith('.yml'))
+    if (extension.endsWith('.yaml') || extension.endsWith('.yml')) {
       return 'text/x-yaml';
+    }
     if (extension.endsWith('.toml')) return 'text/x-toml';
     if (extension.endsWith('.ini')) return 'text/x-ini';
-    if (extension.endsWith('.cfg') || extension.endsWith('.conf'))
+    if (extension.endsWith('.cfg') || extension.endsWith('.conf')) {
       return 'text/plain';
+    }
     if (extension.endsWith('.json')) return 'application/json';
     if (extension.endsWith('.xml')) return 'text/xml';
-    if (extension.endsWith('.md') || extension.endsWith('.markdown'))
+    if (extension.endsWith('.md') || extension.endsWith('.markdown')) {
       return 'text/markdown';
+    }
     if (extension.endsWith('.txt')) return 'text/plain';
     if (extension.endsWith('.log')) return 'text/plain';
     return 'application/octet-stream';
