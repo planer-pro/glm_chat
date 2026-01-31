@@ -19,7 +19,7 @@ dependencies:
   http: ^1.2.0
 
   # Markdown rendering (заменённый пакет)
-  flutter_markdown_plus: ^0.7.0
+  flutter_markdown_plus: ^1.0.7
 
   # Code syntax highlighting
   flutter_highlight: ^0.7.0
