@@ -176,7 +176,7 @@ Models have `toJson()` for serialization and factory constructors like `Message.
 API configuration in `lib/core/constants/api_constants.dart`:
 - Base URL: `https://open.bigmodel.cn/api/paas/v4`
 - Model: `glm-4.7`
-- Timeout: 60 seconds
+- Timeout: 120 seconds (configurable in settings, 30-300s range)
 - Max tokens: 4096
 
 ## Theme
@@ -186,7 +186,7 @@ Material 3 dark theme configured in `lib/core/theme/app_theme.dart`. App uses `t
 **Design Philosophy** (Updated 2026-01-26):
 - **Minimalistic**: Clean UI without avatars, minimal borders, subtle colors
 - **Professional**: User messages in blue (#60A5FA), assistant in dark (#1E293B)
-- **Typography**: Optimized font sizes (15px for messages, configurable code font)
+- **Typography**: Optimized font sizes (15px for messages, configurable font)
 - **Spacing**: Consistent 20px horizontal padding, 6px vertical for messages
 
 ## User Input & Keyboard Shortcuts
@@ -200,19 +200,92 @@ Material 3 dark theme configured in `lib/core/theme/app_theme.dart`. App uses `t
 
 ## Settings & Customization
 
-**Code Font Size** (stored in secure storage):
+**Font Size** (stored in secure storage):
 - Default: 20px
 - Range: 12-32px (adjustable via slider)
 - Quick presets: Small (14), Medium (20), Large (26)
 - Stored in `flutter_secure_storage` with key `code_font_size`
+- Applied to ALL messages (user and assistant)
+
+**Request Timeout** (stored in secure storage):
+- Default: 120 seconds
+- Range: 30-300 seconds (adjustable via slider)
+- Quick presets: 30s, 60s, 120s, 5min
+- Stored in `flutter_secure_storage` with key `request_timeout`
+- Used in API requests (configurable per request)
 
 **Settings Provider** (`lib/providers/settings_provider.dart`):
-- Manages API key and code font size
+- Manages API key, font size, and request timeout
 - Notifier pattern for state updates
 - Persists to `StorageService`
 - Loaded on app startup via `_loadSettings()`
 
 ## Recent Changes
+
+### 2026-01-31: API Timeout Settings & Performance Improvements
+**New Features**: Added configurable API timeout and improved loading indicators.
+
+**Implementation**:
+1. **Timeout Settings** (`lib/providers/settings_provider.dart`):
+   - Added `requestTimeout` field to `SettingsState` (default 120s)
+   - `setRequestTimeout()` method for updating timeout
+   - Stored in secure storage with key `request_timeout`
+   - Range: 30-300 seconds with quick presets
+
+2. **Settings UI** (`lib/widgets/settings/settings_screen.dart`):
+   - New "Timeout Settings" card with slider
+   - Quick presets: 30s, 60s, 120s, 5min
+   - Real-time value display
+   - `_TimeoutButton` widget for presets
+
+3. **API Service** (`lib/services/api_service.dart`):
+   - Added optional `timeout` parameter to methods
+   - `createChatCompletion()` accepts custom timeout
+   - `createStreamingChatCompletion()` accepts custom timeout
+   - Default: 60 seconds if not specified
+
+4. **Chat Provider Integration** (`lib/providers/chat_provider.dart`):
+   - Reads timeout from settings before API call
+   - Logs timeout value for debugging
+   - Passes timeout to API service
+
+5. **Improved Loading Indicator** (`lib/widgets/chat/chat_screen.dart`):
+   - Enhanced "GLM thinks..." indicator with better styling
+   - Added explanatory text about wait time
+   - Larger spinner (20x20 instead of 16x16)
+   - Better typography (15px bold, 12px subtitle)
+
+6. **Response Time Logging** (`lib/providers/chat_provider.dart`):
+   - Logs start time, elapsed time, and response length
+   - Helps track API performance
+   - Example: `Ответ сгенерирован за 3.456с (3456мс)`
+
+**Changes:**
+- Modified: `lib/core/constants/api_constants.dart` - Increased default timeout to 120s
+- Modified: `lib/providers/settings_provider.dart` - Added timeout management
+- Modified: `lib/services/storage_service.dart` - Added timeout storage methods
+- Modified: `lib/services/api_service.dart` - Added timeout parameter
+- Modified: `lib/providers/chat_provider.dart` - Integrated timeout settings
+- Modified: `lib/widgets/settings/settings_screen.dart` - Added timeout UI
+- Modified: `lib/widgets/chat/chat_screen.dart` - Improved loading indicator
+
+**User Benefits**:
+- Configurable timeout for complex queries
+- Better visibility during long responses
+- Performance tracking via logs
+
+### 2026-01-31: Font Size for All Messages
+**New Feature**: Font size setting now applies to all messages (user and assistant).
+
+**Implementation**:
+1. **MessageBubble Update** (`lib/widgets/chat/message_bubble.dart`):
+   - Added `fontSize` parameter from settings
+   - Applied to main text with proper scaling
+   - Markdown headers scaled proportionally (h1=1.6x, h2=1.35x, h3=1.2x)
+   - Code blocks scaled to 0.9x of base font size
+
+**Changes:**
+- Modified: `lib/widgets/chat/message_bubble.dart` - Applied font size everywhere
 
 ### 2026-01-31: Session Management & Dependency Updates
 **New Feature**: Added side drawer with chat history management.

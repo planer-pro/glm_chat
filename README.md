@@ -13,11 +13,14 @@ GLM Chat is a professional Flutter application for communicating with the GLM 4.
 
 - **Professional Dark Theme** - Material 3 design with minimalistic UI
 - **Chat with GLM 4.7** - Real-time messaging with Zhipu AI's powerful model
+  - Configurable timeout (30-300 seconds, default 120s)
+  - Response time logging
 - **Session Management** - Side drawer with chat history
   - Auto-save sessions after each message
   - Switch between previous conversations
   - Delete individual sessions or entire history
   - Persistent storage across app restarts
+  - Auto-generated titles from first message
 - **File Attachments** - Support for all file types (images, documents, code, etc.)
   - Images are sent directly to the model (GLM-4V vision capability)
   - Text files are read and their content is added to the message
@@ -30,7 +33,8 @@ GLM Chat is a professional Flutter application for communicating with the GLM 4.
   - Deletes all subsequent messages and regenerates response
 - **Copy Response** - One-click copy for assistant responses
 - **Completion Indicator** - Visual confirmation when response is complete
-- **Secure Storage** - API key stored in encrypted storage
+- **Customizable Font Size** - Apply to all messages (user and assistant)
+- **Secure Storage** - API key and settings stored in encrypted storage
 - **Cross-Platform** - Supports Android, iOS, Web, and Desktop
 
 ### Architecture
@@ -64,10 +68,11 @@ lib/
 
 | Dependency | Version | Purpose |
 |------------|---------|---------|
-| flutter_riverpod | ^3.2.0 | State management |
-| riverpod | ^3.2.0 | State management core |
+| flutter_riverpod | ^2.6.1 | State management |
+| riverpod | ^2.6.1 | State management core |
 | http | ^1.2.0 | HTTP client |
-| flutter_markdown_plus | ^0.7.0 | Markdown rendering |
+| flutter_markdown_plus | ^1.0.7 | Markdown rendering |
+| markdown | ^7.2.0 | Markdown parsing |
 | flutter_highlight | ^0.7.0 | Code syntax highlighting |
 | flutter_secure_storage | ^10.0.0 | Encrypted key storage |
 | file_picker | ^10.3.10 | File selection |
@@ -107,6 +112,16 @@ flutter run
 2. Enter your API key and click "Save" (or "Сохранить" in Russian)
 3. Start chatting with GLM 4.7!
 
+### Settings
+
+The app provides several customization options:
+
+- **API Key** - Your Zhipu AI API key for accessing GLM 4.7
+- **Font Size** - Adjust text size for all messages (12-32px)
+- **Response Timeout** - Configure API request timeout (30-300 seconds, default 120s)
+  - Higher values allow the model more time for complex queries
+  - Quick presets: 30s, 60s, 120s, 5min
+
 ### Keyboard Shortcuts
 
 - **ENTER** - Send message
@@ -133,11 +148,14 @@ GLM Chat - профессиональное Flutter приложение для 
 
 - **Профессиональная тёмная тема** - Дизайн Material 3 с минималистичным интерфейсом
 - **Чат с GLM 4.7** - Общение в реальном времени с мощной моделью от Zhipu AI
+  - Настраиваемый таймаут ответа (30-300 секунд, по умолчанию 120с)
+  - Логирование времени генерации ответа
 - **Управление сессиями** - Боковое меню с историей чатов
   - Автосохранение сессий после каждого сообщения
   - Переключение между предыдущими разговорами
   - Удаление отдельных сессий или всей истории
   - Сохранение истории между запусками приложения
+  - Автоматическая генерация заголовка из первых слов запроса
 - **Прикрепление файлов** - Поддержка всех типов файлов (изображения, документы, код и т.д.)
   - Изображения отправляются напрямую модели (возможности зрения GLM-4V)
   - Текстовые файлы читаются, их содержимое добавляется в сообщение
@@ -150,7 +168,8 @@ GLM Chat - профессиональное Flutter приложение для 
   - Удаляет все последующие сообщения и перегенерирует ответ
 - **Копирование ответа** - Копирование ответа ассистента в один клик
 - **Индикатор завершения** - Визуальное подтверждение окончания ответа
-- **Безопасное хранение** - API ключ хранится в зашифрованном хранилище
+- **Настройка размера шрифта** - Применяется ко всем сообщениям (запросы и ответы)
+- **Безопасное хранение** - API ключ и настройки хранятся в зашифрованном хранилище
 - **Кроссплатформенность** - Поддержка Android, iOS, Web и Desktop
 
 ### Архитектура
@@ -226,6 +245,16 @@ flutter run
 1. При первом запуске приложение покажет экран настройки API ключа
 2. Введите ваш API ключ и нажмите "Сохранить"
 3. Начните общение с GLM 4.7!
+
+### Настройки
+
+Приложение предоставляет различные настройки:
+
+- **API ключ** - Ваш ключ Zhipu AI для доступа к GLM 4.7
+- **Размер шрифта** - Настройка размера текста для всех сообщений (12-32px)
+- **Таймаут ответа** - Настройка таймаута запроса к API (30-300 секунд, по умолчанию 120с)
+  - Большие значения позволяют модели больше времени на сложные запросы
+  - Быстрые пресеты: 30с, 60с, 120с, 5мин
 
 ### Горячие клавиши
 
