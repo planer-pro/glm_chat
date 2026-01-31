@@ -7,6 +7,7 @@ import 'package:markdown/markdown.dart' as md;
 import '../code/code_block_widget.dart';
 import '../../data/models/message.dart';
 import '../../providers/chat_provider.dart';
+import '../../providers/settings_provider.dart';
 
 /// Пузырь сообщения в чате (минималистичный дизайн)
 class MessageBubble extends ConsumerWidget {
@@ -21,6 +22,8 @@ class MessageBubble extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final isUser = message.isUser;
     final chatState = ref.watch(chatProvider);
+    final settingsState = ref.watch(settingsProvider);
+    final fontSize = settingsState.codeFontSize; // Используем этот размер для всего текста
 
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 6),
@@ -41,8 +44,8 @@ class MessageBubble extends ConsumerWidget {
               borderRadius: BorderRadius.circular(12),
             ),
             child: isUser
-                ? _buildUserContent()
-                : _buildAssistantContent(context, chatState),
+                ? _buildUserContent(fontSize)
+                : _buildAssistantContent(context, chatState, fontSize),
           ),
           if (isUser) ...[
             const SizedBox(height: 4),
@@ -83,7 +86,7 @@ class MessageBubble extends ConsumerWidget {
   }
 
   /// Содержимое сообщения пользователя (простой текст + файлы)
-  Widget _buildUserContent() {
+  Widget _buildUserContent(double fontSize) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -101,9 +104,9 @@ class MessageBubble extends ConsumerWidget {
           if (message.attachedFiles.isNotEmpty) const SizedBox(height: 8),
           Text(
             message.content,
-            style: const TextStyle(
+            style: TextStyle(
               color: Colors.white,
-              fontSize: 15,
+              fontSize: fontSize,
               height: 1.4,
             ),
           ),
@@ -198,7 +201,7 @@ class MessageBubble extends ConsumerWidget {
   }
 
   /// Содержимое сообщения ассистента (Markdown + подсветка кода + кнопки действий)
-  Widget _buildAssistantContent(BuildContext context, ChatState chatState) {
+  Widget _buildAssistantContent(BuildContext context, ChatState chatState, double fontSize) {
     final isLastMessage = chatState.messages.isNotEmpty &&
         chatState.messages.last.id == message.id;
     final isResponseComplete =
@@ -211,34 +214,34 @@ class MessageBubble extends ConsumerWidget {
           data: message.content,
           selectable: true,
           styleSheet: MarkdownStyleSheet(
-            p: const TextStyle(
-              color: Color(0xDDFFFFFF),
-              fontSize: 15,
+            p: TextStyle(
+              color: const Color(0xDDFFFFFF),
+              fontSize: fontSize,
               height: 1.5,
             ),
-            code: const TextStyle(
-              backgroundColor: Color(0xFF0F172A),
-              color: Color(0xFF60A5FA),
-              fontSize: 14,
+            code: TextStyle(
+              backgroundColor: const Color(0xFF0F172A),
+              color: const Color(0xFF60A5FA),
+              fontSize: fontSize * 0.9,
               fontFamily: 'monospace',
             ),
             codeblockDecoration: BoxDecoration(
               color: const Color(0xFF0F172A),
               borderRadius: BorderRadius.circular(8),
             ),
-            h1: const TextStyle(
+            h1: TextStyle(
               color: Colors.white,
-              fontSize: 24,
+              fontSize: fontSize * 1.6,
               fontWeight: FontWeight.bold,
             ),
-            h2: const TextStyle(
+            h2: TextStyle(
               color: Colors.white,
-              fontSize: 20,
+              fontSize: fontSize * 1.35,
               fontWeight: FontWeight.bold,
             ),
-            h3: const TextStyle(
+            h3: TextStyle(
               color: Colors.white,
-              fontSize: 18,
+              fontSize: fontSize * 1.2,
               fontWeight: FontWeight.bold,
             ),
             strong: const TextStyle(
