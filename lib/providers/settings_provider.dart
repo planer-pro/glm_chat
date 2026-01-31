@@ -284,36 +284,13 @@ class SettingsNotifier extends StateNotifier<SettingsState> {
     print('[SettingsNotifier] Загрузка моделей для провайдера: ${provider.providerId}');
 
     if (provider.providerId == 'glm') {
-      // Для GLM используем расширенный список моделей (включая legacy)
+      // Для GLM используем только основные модели
       final glmModels = [
-        // GLM-4 серия (актуальные)
         'glm-4.7',
-        'glm-4-plus',
-        'glm-4-flash',
-        'glm-4-air',
-        'glm-4-airx',
-        // GLM-4 серия (старые версии)
-        'glm-4',
-        'glm-4-0520',
-        'glm-4-0204',
-        'glm-4-flashx',
-        'glm-4-long',
-        // GLM-3 серия (legacy)
-        'glm-3-turbo',
-        'glm-3-turbo-0524',
-        'glm-3-turbo-0204',
-        'glm-3',
-        // GLM-3A серия
-        'glm-3a',
-        'glm-3a-0204',
-        // CodeGemma серия
-        'codegeex-4',
-        'codegeex-4-all',
-        'codegeex-4-0520',
-        'codegeex-4-0204',
+        'glm-4.6',
+        'glm-4.5',
+        'glm-4.5-air',
       ];
-      // Сортируем по алфавиту
-      glmModels.sort((a, b) => a.toLowerCase().compareTo(b.toLowerCase()));
       state = state.copyWith(availableModels: glmModels);
       print('[SettingsNotifier] Загружено ${glmModels.length} моделей GLM');
     } else if (provider.providerId == 'openrouter') {
