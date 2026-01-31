@@ -102,27 +102,42 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
                     },
                   ),
           ),
-          // Индикатор загрузки/завершения (минималистичный)
+          // Индикатор загрузки/завершения (улучшенный с анимацией)
           if (chatState.isLoading)
             Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
+              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
               child: Row(
                 children: [
                   SizedBox(
-                    width: 16,
-                    height: 16,
+                    width: 20,
+                    height: 20,
                     child: CircularProgressIndicator(
-                      strokeWidth: 2,
-                      color: Theme.of(context).colorScheme.primary,
+                      strokeWidth: 2.5,
+                      valueColor: AlwaysStoppedAnimation<Color>(
+                        Theme.of(context).colorScheme.primary,
+                      ),
                     ),
                   ),
-                  const SizedBox(width: 12),
-                  const Text(
-                    'GLM печатает...',
-                    style: TextStyle(
-                      color: Colors.white54,
-                      fontSize: 13,
-                    ),
+                  const SizedBox(width: 14),
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const Text(
+                        'GLM 4.7 думает...',
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontSize: 15,
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
+                      const Text(
+                        'Это может занять время для сложных запросов',
+                        style: TextStyle(
+                          color: Colors.white54,
+                          fontSize: 12,
+                        ),
+                      ),
+                    ],
                   ),
                 ],
               ),

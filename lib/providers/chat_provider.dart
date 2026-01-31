@@ -166,9 +166,18 @@ class ChatNotifier extends StateNotifier<ChatState> {
 
       final request = ChatRequest.glm47(messagesCopy, stream: true);
 
+      // Получаем таймаут из настроек
+      final settings = _ref.read(settingsProvider);
+      final timeout = Duration(seconds: settings.requestTimeout);
+
+      // Засекаем время начала генерации
+      final startTime = DateTime.now();
+      print('[ChatNotifier.sendMessage] Начало генерации ответа в ${startTime.toIso8601String()}');
+      print('[ChatNotifier.sendMessage] Таймаут: ${settings.requestTimeout} сек');
+
       // Подписываемся на потоковый ответ
       _streamSubscription = _apiService
-          .createStreamingChatCompletion(apiKey, request)
+          .createStreamingChatCompletion(apiKey, request, timeout: timeout)
           .listen(
         (event) {
           // Обновляем содержимое последнего сообщения (ассистента)
@@ -187,12 +196,20 @@ class ChatNotifier extends StateNotifier<ChatState> {
           }
         },
         onError: (error) {
+          final elapsed = DateTime.now().difference(startTime).inSeconds;
+          print('[ChatNotifier.sendMessage] Ошибка через ${elapsed}с: $error');
           state = state.copyWith(
             isLoading: false,
             error: error.toString(),
           );
         },
         onDone: () {
+          final elapsed = DateTime.now().difference(startTime);
+          final seconds = elapsed.inSeconds;
+          final millis = elapsed.inMilliseconds % 1000;
+          print('[ChatNotifier.sendMessage] Ответ сгенерирован за ${seconds}.${millis.toString().padLeft(3, '0')}с (${elapsed.inMilliseconds}мс)');
+          print('[ChatNotifier.sendMessage] Длина ответа: ${state.messages.last.content.length} символов');
+
           state = state.copyWith(isLoading: false);
           // Автосохранение сессии после получения ответа
           _saveCurrentSession();

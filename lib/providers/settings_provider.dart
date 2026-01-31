@@ -12,21 +12,27 @@ class SettingsState {
   /// Размер шрифта для блоков кода
   final double codeFontSize;
 
+  /// Таймаут запроса к API в секундах
+  final int requestTimeout;
+
   SettingsState({
     this.maskedApiKey = '',
     this.isValidApiKey = false,
     this.codeFontSize = 20.0,
+    this.requestTimeout = 120,
   });
 
   SettingsState copyWith({
     String? maskedApiKey,
     bool? isValidApiKey,
     double? codeFontSize,
+    int? requestTimeout,
   }) {
     return SettingsState(
       maskedApiKey: maskedApiKey ?? this.maskedApiKey,
       isValidApiKey: isValidApiKey ?? this.isValidApiKey,
       codeFontSize: codeFontSize ?? this.codeFontSize,
+      requestTimeout: requestTimeout ?? this.requestTimeout,
     );
   }
 }
@@ -45,11 +51,13 @@ class SettingsNotifier extends StateNotifier<SettingsState> {
       // Загружаем API ключ
       final apiKey = await _storage.getApiKey();
       final codeFontSize = await _storage.getCodeFontSize();
+      final requestTimeout = await _storage.getRequestTimeout();
 
       state = state.copyWith(
         maskedApiKey: apiKey != null && apiKey.isNotEmpty ? _maskApiKey(apiKey) : '',
         isValidApiKey: apiKey != null && apiKey.isNotEmpty,
         codeFontSize: codeFontSize,
+        requestTimeout: requestTimeout,
       );
     } catch (e) {
       // Игнорируем ошибки при загрузке
@@ -105,6 +113,16 @@ class SettingsNotifier extends StateNotifier<SettingsState> {
     try {
       await _storage.saveCodeFontSize(size);
       state = state.copyWith(codeFontSize: size);
+    } catch (e) {
+      // Игнорируем ошибки
+    }
+  }
+
+  /// Установка таймаута запроса
+  Future<void> setRequestTimeout(int seconds) async {
+    try {
+      await _storage.saveRequestTimeout(seconds);
+      state = state.copyWith(requestTimeout: seconds);
     } catch (e) {
       // Игнорируем ошибки
     }

@@ -40,12 +40,16 @@ class ApiService {
   ///
   /// [apiKey] - API ключ для авторизации
   /// [request] - объект с параметрами запроса
+  /// [timeout] - таймаут запроса (по умолчанию 60 секунд)
   ///
   /// Возвращает [ChatResponse] с ответом от модели
   Future<ChatResponse> createChatCompletion(
     String apiKey,
-    ChatRequest request,
-  ) async {
+    ChatRequest request, {
+    Duration? timeout,
+  }) async {
+    final effectiveTimeout = timeout ?? const Duration(seconds: 60);
+
     try {
       // Используем асинхронную конвертацию для поддержки multimodal content
       final requestBody = await request.toJson();
@@ -59,7 +63,7 @@ class ApiService {
             },
             body: jsonEncode(requestBody),
           )
-          .timeout(ApiConstants.requestTimeout);
+          .timeout(effectiveTimeout);
 
       // Обработка ошибок по статус коду
       if (response.statusCode == 401) {
@@ -98,11 +102,18 @@ class ApiService {
 
   /// Потоковая отправка запроса к GLM 4.7 API
   ///
+  /// [apiKey] - API ключ для авторизации
+  /// [request] - объект с параметрами запроса
+  /// [timeout] - таймаут запроса (по умолчанию 60 секунд)
+  ///
   /// Возвращает [Stream] с событиями, содержащими порции текста
   Stream<StreamedChatEvent> createStreamingChatCompletion(
     String apiKey,
-    ChatRequest request,
-  ) async* {
+    ChatRequest request, {
+    Duration? timeout,
+  }) async* {
+    final effectiveTimeout = timeout ?? const Duration(seconds: 60);
+
     try {
       // Создаём потоковый запрос
       final requestStream = request.copyWith(stream: true);
@@ -117,7 +128,7 @@ class ApiService {
               'Authorization': 'Bearer $apiKey',
             })
             ..body = jsonEncode(requestBody))
-          .timeout(ApiConstants.requestTimeout);
+          .timeout(effectiveTimeout);
 
       // Проверяем статус ответа
       final response = await stream;

@@ -6,6 +6,9 @@ const String _apiKeyKey = 'glm_api_key';
 /// Ключ для хранения размера шрифта кода
 const String _codeFontSizeKey = 'code_font_size';
 
+/// Ключ для хранения таймаута запроса
+const String _requestTimeoutKey = 'request_timeout';
+
 /// Ключ для хранения списка сессий
 const String _sessionsKey = 'chat_sessions';
 
@@ -144,6 +147,31 @@ class StorageService {
       await _storage.delete(key: _activeSessionIdKey);
     } catch (e) {
       throw Exception('Ошибка при удалении ID активной сессии: $e');
+    }
+  }
+
+  // ========== Методы для работы с таймаутом ==========
+
+  /// Получение таймаута запроса в секундах
+  ///
+  /// Возвращает 120 по умолчанию если значение не найдено
+  Future<int> getRequestTimeout() async {
+    try {
+      final value = await _storage.read(key: _requestTimeoutKey);
+      return value != null ? int.tryParse(value) ?? 120 : 120;
+    } catch (e) {
+      return 120;
+    }
+  }
+
+  /// Сохранение таймаута запроса
+  ///
+  /// [seconds] - таймаут в секундах для сохранения
+  Future<void> saveRequestTimeout(int seconds) async {
+    try {
+      await _storage.write(key: _requestTimeoutKey, value: seconds.toString());
+    } catch (e) {
+      throw Exception('Ошибка при сохранении таймаута: $e');
     }
   }
 }

@@ -8,8 +8,8 @@ class ApiConstants {
   /// Model name
   static const String model = 'glm-4.7';
 
-  /// Request timeout duration
-  static const Duration requestTimeout = Duration(seconds: 60);
+  /// Request timeout duration (увеличен для сложных запросов)
+  static const Duration requestTimeout = Duration(seconds: 120);
 
   /// Temperature for response generation
   static const double defaultTemperature = 0.7;

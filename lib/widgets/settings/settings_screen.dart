@@ -293,6 +293,82 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
           ),
           const SizedBox(height: 24),
 
+          // Карточка настроек таймаута
+          Card(
+            child: Padding(
+              padding: const EdgeInsets.all(16),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      const Icon(Icons.timer_outlined, color: Color(0xFF60A5FA)),
+                      const SizedBox(width: 12),
+                      Text(
+                        'Таймаут ответа API',
+                        style: Theme.of(context).textTheme.titleLarge,
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 16),
+                  Text(
+                    'Текущий таймаут: ${settingsState.requestTimeout} сек',
+                    style: Theme.of(context).textTheme.bodyMedium,
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    'Большее значение позволяет модели отвечать дольше на сложные вопросы',
+                    style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                      color: Colors.white54,
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                  Slider(
+                    value: settingsState.requestTimeout.toDouble(),
+                    min: 30,
+                    max: 300,
+                    divisions: 27,
+                    label: '${settingsState.requestTimeout} сек',
+                    onChanged: (value) {
+                      ref.read(settingsProvider.notifier).setRequestTimeout(value.toInt());
+                    },
+                  ),
+                  const SizedBox(height: 8),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                    children: [
+                      _TimeoutButton(
+                        label: '30 сек',
+                        value: 30,
+                        currentValue: settingsState.requestTimeout,
+                        onTap: () => ref.read(settingsProvider.notifier).setRequestTimeout(30),
+                      ),
+                      _TimeoutButton(
+                        label: '60 сек',
+                        value: 60,
+                        currentValue: settingsState.requestTimeout,
+                        onTap: () => ref.read(settingsProvider.notifier).setRequestTimeout(60),
+                      ),
+                      _TimeoutButton(
+                        label: '120 сек',
+                        value: 120,
+                        currentValue: settingsState.requestTimeout,
+                        onTap: () => ref.read(settingsProvider.notifier).setRequestTimeout(120),
+                      ),
+                      _TimeoutButton(
+                        label: '5 мин',
+                        value: 300,
+                        currentValue: settingsState.requestTimeout,
+                        onTap: () => ref.read(settingsProvider.notifier).setRequestTimeout(300),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+          ),
+          const SizedBox(height: 24),
+
           // Карточка с информацией
           Card(
             child: Padding(
@@ -342,6 +418,39 @@ class _FontSizeButton extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final isSelected = currentSize == size;
+
+    return OutlinedButton(
+      onPressed: onTap,
+      style: OutlinedButton.styleFrom(
+        backgroundColor: isSelected ? Theme.of(context).colorScheme.primary : null,
+        foregroundColor: isSelected ? Colors.white : null,
+        side: BorderSide(
+          color: isSelected ? Theme.of(context).colorScheme.primary : Colors.white24,
+          width: isSelected ? 2 : 1,
+        ),
+      ),
+      child: Text(label),
+    );
+  }
+}
+
+/// Кнопка для быстрого выбора таймаута
+class _TimeoutButton extends StatelessWidget {
+  final String label;
+  final int value;
+  final int currentValue;
+  final VoidCallback onTap;
+
+  const _TimeoutButton({
+    required this.label,
+    required this.value,
+    required this.currentValue,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final isSelected = currentValue == value;
 
     return OutlinedButton(
       onPressed: onTap,
