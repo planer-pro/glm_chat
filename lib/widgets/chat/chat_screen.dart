@@ -40,6 +40,38 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
     });
   }
 
+  /// Получение названия приложения для AppBar на основе провайдера и модели
+  String _getAppTitle(String providerId, String modelName) {
+    // Короткое название модели для заголовка
+    final shortModel = modelName.split('/').last; // Убираем "provider/" если есть
+    final shortModel2 = shortModel.split('-').first; // Берем первую часть до дефиса
+
+    // Карта коротких названий провайдеров
+    final providerNames = {
+      'glm': 'GLM',
+      'openrouter': 'AI',
+    };
+
+    final providerName = providerNames[providerId] ?? 'AI';
+
+    // Для GLM показываем GLM Chat, для других - модель + Chat
+    if (providerId == 'glm') {
+      return 'GLM Chat';
+    } else {
+      return '$shortModel2 Chat';
+    }
+  }
+
+  /// Получение отображаемого названия модели
+  String _getModelDisplayName(String modelName) {
+    // Убираем часть провайдера если есть (например, "anthropic/" -> "")
+    if (modelName.contains('/')) {
+      final parts = modelName.split('/');
+      return parts.last; // Возвращаем только имя модели
+    }
+    return modelName;
+  }
+
   @override
   Widget build(BuildContext context) {
     final chatState = ref.watch(chatProvider);
@@ -66,9 +98,9 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
           onPressed: () => _scaffoldKey.currentState?.openDrawer(),
           tooltip: 'История чатов',
         ),
-        title: const Text(
-          'GLM Chat',
-          style: TextStyle(
+        title: Text(
+          _getAppTitle(settingsState.selectedProviderId, settingsState.modelName),
+          style: const TextStyle(
             fontSize: 18,
             fontWeight: FontWeight.w500,
           ),
@@ -123,9 +155,9 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
                   Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      const Text(
-                        'GLM 4.7 думает...',
-                        style: TextStyle(
+                      Text(
+                        '${_getModelDisplayName(settingsState.modelName)} думает...',
+                        style: const TextStyle(
                           color: Colors.white,
                           fontSize: 15,
                           fontWeight: FontWeight.w500,
@@ -211,9 +243,9 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
             ),
           ),
           const SizedBox(height: 20),
-          const Text(
-            'GLM 4.7',
-            style: TextStyle(
+          Text(
+            _getModelDisplayName(ref.watch(settingsProvider).modelName),
+            style: const TextStyle(
               fontSize: 20,
               fontWeight: FontWeight.w600,
               color: Colors.white,

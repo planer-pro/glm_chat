@@ -33,7 +33,7 @@ dart format .
 
 ## Architecture Overview
 
-This is a Flutter chat application for GLM 4.7 (Zhipu AI). The architecture follows a clean separation of concerns with Riverpod for state management.
+This is a Flutter chat application for AI models with support for multiple providers (GLM, OpenRouter). The architecture follows a clean separation of concerns with Riverpod for state management.
 
 ### State Management Pattern
 
@@ -66,14 +66,58 @@ final apiKey = await _ref.read(settingsProvider.notifier).getApiKey();
 2. `ChatNotifier.sendMessage()` is called with optional files
 3. User message added to state immediately with attached files (optimistic UI)
 4. **Deep copy** of messages created to prevent data loss during async serialization
-5. `ChatRequest.glm47(messages)` creates API request with full conversation history
+5. `ChatRequest` created with dynamic model from settings
 6. `request.toJson()` called asynchronously to serialize messages and read file contents
 7. Text files: content read and added to message text
 8. Images: converted to base64 and added to multimodal content array
-9. `ApiService.createChatCompletion()` sends to GLM 4.7 endpoint
+9. `ApiService.createStreamingChatCompletion()` sends to selected provider endpoint
 10. Response parsed to `ChatResponse` and converted to `Message`
 11. Assistant message added to state
 12. "✓ Ответ окончен" indicator appears in last assistant message
+
+### AI Provider System
+
+The app uses a **Strategy pattern** with abstract `AIProvider` base class to support multiple AI APIs:
+
+**Providers** (`lib/services/providers/`):
+- `base_provider.dart` - Abstract base class defining provider interface
+- `glm_provider.dart` - Implementation for Zhipu GLM API
+- `openrouter_provider.dart` - Implementation for OpenRouter API
+- `provider_factory.dart` - Factory for creating and retrieving providers
+
+**Provider Interface**:
+```dart
+abstract class AIProvider {
+  String get providerId;           // Unique ID (e.g., 'glm', 'openrouter')
+  String get displayName;          // Display name for UI
+  String get baseUrl;              // API base URL
+  String get chatEndpoint;         // Chat endpoint
+  String get defaultModel;         // Default model
+  List<String> get modelExamples;  // Example models for autocomplete
+
+  Map<String, String> buildHeaders(String apiKey);
+  bool isValidApiKey(String apiKey);
+}
+```
+
+**Settings Integration**:
+- Provider selection stored in secure storage (`selected_provider`)
+- Model name stored separately (`model_name`)
+- API keys stored separately for each provider
+- UI allows switching between providers with dropdown
+- Model name editable with autocomplete examples
+
+**Supported Providers**:
+1. **GLM (Zhipu AI)**:
+   - Base URL: `https://open.bigmodel.cn/api/paas/v4`
+   - Models: `glm-4.7`, `glm-4-plus`, `glm-4-flash`
+   - API Key stored in `glm_api_key`
+
+2. **OpenRouter**:
+   - Base URL: `https://openrouter.ai/api/v1`
+   - Models: `anthropic/claude-3.5-sonnet`, `openai/gpt-4o`, `google/gemini-pro-1.5`, etc.
+   - API Key stored in `openrouter_api_key`
+   - Requires additional headers: `HTTP-Referer`, `X-Title`
 
 ### Message Editing Architecture
 
@@ -101,10 +145,30 @@ Messages can be edited inline via the input field (no dialog):
 
 ### API Layer
 
-`ApiService` (lib/services/api_service.dart) handles all HTTP communication:
+`ApiService` (lib/services/api_service.dart) handles all HTTP communication with AI providers:
+- Accepts `AIProvider` parameter for flexible provider switching
+- Uses `provider.buildHeaders()` for provider-specific headers
+- Uses `provider.baseUrl` and `provider.chatEndpoint` for URLs
 - Throws `ApiException` for error cases (401, 429, 400, 5xx)
 - **Configurable timeout**: default 60 seconds in code, but uses settings value (120s default, range 30-300s)
 - Returns typed `ChatResponse` objects
+
+**Methods**:
+```dart
+Future<ChatResponse> createChatCompletion(
+  AIProvider provider,
+  String apiKey,
+  ChatRequest request,
+  {Duration? timeout}
+)
+
+Stream<StreamedChatEvent> createStreamingChatCompletion(
+  AIProvider provider,
+  String apiKey,
+  ChatRequest request,
+  {Duration? timeout}
+)
+```
 
 ### Secure Storage
 
@@ -286,6 +350,109 @@ Material 3 dark theme configured in `lib/core/theme/app_theme.dart`. App uses `t
 - [ ] Интеграционные тесты для потока сообщений
 
 ## Recent Changes
+
+### 2026-01-31: Исправление UI и сохранения модели
+**Fixes & Improvements**: Исправлены критические ошибки с сохранением модели и отображением UI.
+
+**Исправления**:
+1. **Исправлено сохранение модели** (`lib/widgets/settings/settings_screen.dart`):
+   - Исправлена кнопка сохранения - теперь использует `_modelNameController.text` вместо `controller.text`
+   - Улучшена логика `didChangeDependencies()` - не перезаписывает контроллер если он содержит правильное значение
+   - Добавлена валидация - проверка на пустую строку перед сохранением
+
+2. **Исправлена логика смены провайдера** (`lib/providers/settings_provider.dart`):
+   - Умная логика определения модели по умолчанию при переключении провайдеров
+   - Проверка: если сохранена дефолтная модель GLM ("glm-4.7") для OpenRouter - заменяется на дефолтную модель OpenRouter
+   - Добавлено отладочное логирование для диагностики
+
+3. **Динамические названия моделей в UI** (`lib/widgets/chat/chat_screen.dart`):
+   - AppBar показывает название приложения на основе провайдера/модели (например, "GPT Chat" для OpenRouter)
+   - Индикатор загрузки показывает название модели: "gpt-4o думает..." вместо "GLM 4.7 думает..."
+   - Заголовок сообщения показывает название модели (с удалением префикса провайдера)
+   - Добавлен метод `_getModelDisplayName()` для красивого отображения названий
+
+**Проблемы, которые были исправлены**:
+- ❌ Модель не сохранялась при выходе из настроек → ✅ Теперь сохраняется корректно
+- ❌ Кнопка сохранения не работала → ✅ Теперь использует правильный контроллер
+- ❌ Название "GLM 4.7" везде → ✅ Теперь динамическое название выбранной модели
+- ❌ Модель перезаписывалась на дефолтную при входе в настройки → ✅ Умная логика проверки
+
+**Результат**:
+- ✅ Пользователь может выбирать и сохранять любую модель
+- ✅ Модель корректно сохраняется и загружается при повторном входе
+- ✅ UI отображает актуальную информацию о выбранной модели
+- ✅ Работает для всех провайдеров (GLM, OpenRouter)
+
+**Changes**:
+- Modified: `lib/providers/settings_provider.dart` - Умная логика setProvider()
+- Modified: `lib/widgets/settings/settings_screen.dart` - Исправлено сохранение
+- Modified: `lib/widgets/chat/chat_screen.dart` - Динамические названия
+
+### 2026-01-31: OpenRouter Support & Multi-Provider Architecture
+**New Feature**: Added support for OpenRouter API with flexible provider selection system.
+
+**Implementation**:
+1. **Created Provider Architecture** (`lib/services/providers/`):
+   - `base_provider.dart` - Abstract base class for all AI providers
+   - `glm_provider.dart` - GLM (Zhipu AI) implementation
+   - `openrouter_provider.dart` - OpenRouter implementation
+   - `provider_factory.dart` - Factory for provider management
+
+2. **Extended StorageService** (`lib/services/storage_service.dart`):
+   - `saveSelectedProvider()` - сохранение выбранного провайдера
+   - `getSelectedProvider()` - загрузка провайдера (default 'glm')
+   - `saveModelName()` - сохранение названия модели
+   - `getModelName()` - загрузка модели (default 'glm-4.7')
+   - `saveOpenRouterApiKey()` - сохранение API ключа OpenRouter
+   - `getOpenRouterApiKey()` - загрузка API ключа OpenRouter
+   - `deleteOpenRouterApiKey()` - удаление API ключа OpenRouter
+
+3. **Updated SettingsProvider** (`lib/providers/settings_provider.dart`):
+   - Added `selectedProviderId`, `modelName`, `maskedOpenRouterApiKey`, `isValidOpenRouterApiKey` to state
+   - `setProvider()` - смена провайдера с установкой модели по умолчанию
+   - `setModelName()` - обновление названия модели
+   - `setOpenRouterApiKey()` - сохранение API ключа OpenRouter
+   - `clearOpenRouterApiKey()` - удаление API ключа OpenRouter
+   - `getApiKey()` - возвращает ключ для текущего провайдера
+   - `getCurrentProvider()` - возвращает объект провайдера
+
+4. **Updated ApiService** (`lib/services/api_service.dart`):
+   - Added `AIProvider provider` parameter to methods
+   - Uses `provider.buildHeaders()` for provider-specific headers
+   - Uses `provider.baseUrl` and `provider.chatEndpoint` for URLs
+   - Maintains backward compatibility with legacy methods
+
+5. **Updated ChatProvider** (`lib/providers/chat_provider.dart`):
+   - `sendMessage()` now uses dynamic provider from settings
+   - Uses `modelName` from settings instead of hardcoded model
+   - Logs provider and model information
+
+6. **Redesigned Settings Screen** (`lib/widgets/settings/settings_screen.dart`):
+   - Provider dropdown (GLM / OpenRouter)
+   - Model name input with autocomplete examples
+   - Dynamic info card based on selected provider
+   - Separate API key management per provider
+
+**Supported Models**:
+- **GLM**: `glm-4.7`, `glm-4-plus`, `glm-4-flash`, `glm-4-air`
+- **OpenRouter**: `anthropic/claude-3.5-sonnet`, `openai/gpt-4o`, `google/gemini-pro-1.5`, `meta-llama/llama-3.1-70b`, etc.
+
+**Benefits**:
+- Easy switching between AI providers
+- Support for multiple models through single interface
+- Easy to add new providers in future
+- Backward compatible with existing GLM setup
+
+**Changes**:
+- Created: `lib/services/providers/base_provider.dart`
+- Created: `lib/services/providers/glm_provider.dart`
+- Created: `lib/services/providers/openrouter_provider.dart`
+- Created: `lib/services/providers/provider_factory.dart`
+- Modified: `lib/services/storage_service.dart` - Added provider/model storage
+- Modified: `lib/providers/settings_provider.dart` - Added provider management
+- Modified: `lib/services/api_service.dart` - Added provider parameter
+- Modified: `lib/providers/chat_provider.dart` - Uses provider from settings
+- Modified: `lib/widgets/settings/settings_screen.dart` - Redesigned UI
 
 ### 2026-01-31: Безопасная прокрутка чата
 **Fix**: Исправлена ошибка "ScrollController not attached" при прокрутке чата.

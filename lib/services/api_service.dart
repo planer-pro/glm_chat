@@ -1,9 +1,10 @@
 import 'dart:async';
 import 'dart:convert';
 import 'package:http/http.dart' as http;
-import '../core/constants/api_constants.dart';
 import '../data/models/chat_request.dart';
 import '../data/models/chat_response.dart';
+import '../services/providers/base_provider.dart';
+import '../services/providers/provider_factory.dart';
 
 /// Исключения для API ошибок
 class ApiException implements Exception {
@@ -36,14 +37,16 @@ class ApiService {
 
   ApiService({http.Client? client}) : _client = client ?? http.Client();
 
-  /// Отправка запроса к GLM 4.7 API
+  /// Отправка запроса к API с использованием провайдера.
   ///
+  /// [provider] - провайдер API (GLM, OpenRouter и др.)
   /// [apiKey] - API ключ для авторизации
   /// [request] - объект с параметрами запроса
   /// [timeout] - таймаут запроса (по умолчанию 60 секунд)
   ///
   /// Возвращает [ChatResponse] с ответом от модели
   Future<ChatResponse> createChatCompletion(
+    AIProvider provider,
     String apiKey,
     ChatRequest request, {
     Duration? timeout,
@@ -53,14 +56,12 @@ class ApiService {
     try {
       // Используем асинхронную конвертацию для поддержки multimodal content
       final requestBody = await request.toJson();
+      final url = Uri.parse('${provider.baseUrl}${provider.chatEndpoint}');
 
       final response = await _client
           .post(
-            Uri.parse(ApiConstants.chatCompletions),
-            headers: {
-              'Content-Type': 'application/json',
-              'Authorization': 'Bearer $apiKey',
-            },
+            url,
+            headers: provider.buildHeaders(apiKey),
             body: jsonEncode(requestBody),
           )
           .timeout(effectiveTimeout);
@@ -100,14 +101,16 @@ class ApiService {
     _client.close();
   }
 
-  /// Потоковая отправка запроса к GLM 4.7 API
+  /// Потоковая отправка запроса к API с использованием провайдера.
   ///
+  /// [provider] - провайдер API (GLM, OpenRouter и др.)
   /// [apiKey] - API ключ для авторизации
   /// [request] - объект с параметрами запроса
   /// [timeout] - таймаут запроса (по умолчанию 60 секунд)
   ///
   /// Возвращает [Stream] с событиями, содержащими порции текста
   Stream<StreamedChatEvent> createStreamingChatCompletion(
+    AIProvider provider,
     String apiKey,
     ChatRequest request, {
     Duration? timeout,
@@ -120,13 +123,11 @@ class ApiService {
 
       // Используем асинхронную конвертацию для поддержки multimodal content
       final requestBody = await requestStream.toJson();
+      final url = Uri.parse('${provider.baseUrl}${provider.chatEndpoint}');
 
       final stream = _client
-          .send(http.Request('POST', Uri.parse(ApiConstants.chatCompletions))
-            ..headers.addAll({
-              'Content-Type': 'application/json',
-              'Authorization': 'Bearer $apiKey',
-            })
+          .send(http.Request('POST', url)
+            ..headers.addAll(provider.buildHeaders(apiKey))
             ..body = jsonEncode(requestBody))
           .timeout(effectiveTimeout);
 
@@ -190,5 +191,34 @@ class ApiService {
     } catch (e) {
       throw ApiException('Неизвестная ошибка: ${e.toString()}');
     }
+  }
+
+  /// @deprecated
+  /// Устаревший метод для обратной совместимости.
+  /// Используйте версию с параметром [provider].
+  Future<ChatResponse> createChatCompletionLegacy(
+    String apiKey,
+    ChatRequest request, {
+    Duration? timeout,
+  }) async {
+    final glmProvider = ProviderFactory.getProvider('glm')!;
+    return createChatCompletion(glmProvider, apiKey, request, timeout: timeout);
+  }
+
+  /// @deprecated
+  /// Устаревший метод для обратной совместимости.
+  /// Используйте версию с параметром [provider].
+  Stream<StreamedChatEvent> createStreamingChatCompletionLegacy(
+    String apiKey,
+    ChatRequest request, {
+    Duration? timeout,
+  }) async* {
+    final glmProvider = ProviderFactory.getProvider('glm')!;
+    yield* createStreamingChatCompletion(
+      glmProvider,
+      apiKey,
+      request,
+      timeout: timeout,
+    );
   }
 }

@@ -115,12 +115,28 @@ class ChatNotifier extends StateNotifier<ChatState> {
     // Отменяем предыдущий поток, если есть
     await _streamSubscription?.cancel();
 
-    // Получаем API ключ
-    final apiKey = await _ref.read(settingsProvider.notifier).getApiKey();
+    // Получаем текущий провайдер и API ключ
+    final settingsNotifier = _ref.read(settingsProvider.notifier);
+    final provider = settingsNotifier.getCurrentProvider();
+    final apiKey = await settingsNotifier.getApiKey();
     if (apiKey == null || apiKey.isEmpty) {
       state = state.copyWith(error: 'API ключ не настроен');
       return;
     }
+
+    // Получаем название модели из настроек
+    final settingsState = _ref.read(settingsProvider);
+    var modelName = settingsState.modelName;
+
+    // Fallback: если модель пустая, используем дефолтную для провайдера
+    if (modelName.isEmpty) {
+      modelName = provider.defaultModel;
+      print('[ChatNotifier.sendMessage] Модель пустая, используем дефолтную: $modelName');
+      // Сохраняем дефолтную модель
+      await _ref.read(settingsProvider.notifier).setModelName(modelName);
+    }
+
+    print('[ChatNotifier.sendMessage] Провайдер: ${provider.providerId}, Модель: $modelName');
 
     // Создаём сообщение пользователя с возможными файлами
     final userMessage = Message(
@@ -164,20 +180,24 @@ class ChatNotifier extends StateNotifier<ChatState> {
 
       print('[ChatNotifier.sendMessage] Создана копия сообщений, файлов в последнем: ${messagesCopy.last.attachedFiles.length}');
 
-      final request = ChatRequest.glm47(messagesCopy, stream: true);
+      // Создаём запрос с динамической моделью
+      final request = ChatRequest(
+        model: modelName,
+        messages: messagesCopy,
+        stream: true,
+      );
 
       // Получаем таймаут из настроек
-      final settings = _ref.read(settingsProvider);
-      final timeout = Duration(seconds: settings.requestTimeout);
+      final timeout = Duration(seconds: settingsState.requestTimeout);
 
       // Засекаем время начала генерации
       final startTime = DateTime.now();
       print('[ChatNotifier.sendMessage] Начало генерации ответа в ${startTime.toIso8601String()}');
-      print('[ChatNotifier.sendMessage] Таймаут: ${settings.requestTimeout} сек');
+      print('[ChatNotifier.sendMessage] Таймаут: ${settingsState.requestTimeout} сек');
 
-      // Подписываемся на потоковый ответ
+      // Подписываемся на потоковый ответ с передачей провайдера
       _streamSubscription = _apiService
-          .createStreamingChatCompletion(apiKey, request, timeout: timeout)
+          .createStreamingChatCompletion(provider, apiKey, request, timeout: timeout)
           .listen(
         (event) {
           // Обновляем содержимое последнего сообщения (ассистента)

@@ -1,5 +1,7 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../services/storage_service.dart';
+import '../services/providers/base_provider.dart';
+import '../services/providers/provider_factory.dart';
 
 /// Состояние настроек
 class SettingsState {
@@ -15,11 +17,27 @@ class SettingsState {
   /// Таймаут запроса к API в секундах
   final int requestTimeout;
 
+  /// ID выбранного провайдера ('glm' или 'openrouter')
+  final String selectedProviderId;
+
+  /// Название модели
+  final String modelName;
+
+  /// Маскированный API ключ OpenRouter
+  final String? maskedOpenRouterApiKey;
+
+  /// Валиден ли API ключ OpenRouter
+  final bool isValidOpenRouterApiKey;
+
   SettingsState({
     this.maskedApiKey = '',
     this.isValidApiKey = false,
     this.codeFontSize = 20.0,
     this.requestTimeout = 120,
+    this.selectedProviderId = 'glm',
+    this.modelName = 'glm-4.7',
+    this.maskedOpenRouterApiKey,
+    this.isValidOpenRouterApiKey = false,
   });
 
   SettingsState copyWith({
@@ -27,12 +45,20 @@ class SettingsState {
     bool? isValidApiKey,
     double? codeFontSize,
     int? requestTimeout,
+    String? selectedProviderId,
+    String? modelName,
+    String? maskedOpenRouterApiKey,
+    bool? isValidOpenRouterApiKey,
   }) {
     return SettingsState(
       maskedApiKey: maskedApiKey ?? this.maskedApiKey,
       isValidApiKey: isValidApiKey ?? this.isValidApiKey,
       codeFontSize: codeFontSize ?? this.codeFontSize,
       requestTimeout: requestTimeout ?? this.requestTimeout,
+      selectedProviderId: selectedProviderId ?? this.selectedProviderId,
+      modelName: modelName ?? this.modelName,
+      maskedOpenRouterApiKey: maskedOpenRouterApiKey ?? this.maskedOpenRouterApiKey,
+      isValidOpenRouterApiKey: isValidOpenRouterApiKey ?? this.isValidOpenRouterApiKey,
     );
   }
 }
@@ -48,16 +74,30 @@ class SettingsNotifier extends StateNotifier<SettingsState> {
   /// Загрузка настроек при запуске
   Future<void> _loadSettings() async {
     try {
-      // Загружаем API ключ
+      // Загружаем API ключ GLM
       final apiKey = await _storage.getApiKey();
       final codeFontSize = await _storage.getCodeFontSize();
       final requestTimeout = await _storage.getRequestTimeout();
+
+      // Загружаем провайдер и модель
+      final selectedProviderId = await _storage.getSelectedProvider();
+      final modelName = await _storage.getModelName();
+      print('[SettingsProvider._loadSettings] Загружен провайдер: $selectedProviderId, модель: "$modelName"');
+
+      // Загружаем API ключ OpenRouter
+      final openRouterApiKey = await _storage.getOpenRouterApiKey();
 
       state = state.copyWith(
         maskedApiKey: apiKey != null && apiKey.isNotEmpty ? _maskApiKey(apiKey) : '',
         isValidApiKey: apiKey != null && apiKey.isNotEmpty,
         codeFontSize: codeFontSize,
         requestTimeout: requestTimeout,
+        selectedProviderId: selectedProviderId,
+        modelName: modelName,
+        maskedOpenRouterApiKey: openRouterApiKey != null && openRouterApiKey.isNotEmpty
+            ? _maskApiKey(openRouterApiKey)
+            : null,
+        isValidOpenRouterApiKey: openRouterApiKey != null && openRouterApiKey.isNotEmpty,
       );
     } catch (e) {
       // Игнорируем ошибки при загрузке
@@ -98,11 +138,6 @@ class SettingsNotifier extends StateNotifier<SettingsState> {
     }
   }
 
-  /// Получение API ключа для API запросов
-  Future<String?> getApiKey() async {
-    return await _storage.getApiKey();
-  }
-
   /// Проверка наличия API ключа
   Future<bool> hasApiKey() async {
     return await _storage.hasApiKey();
@@ -126,6 +161,109 @@ class SettingsNotifier extends StateNotifier<SettingsState> {
     } catch (e) {
       // Игнорируем ошибки
     }
+  }
+
+  /// Установка выбранного провайдера
+  Future<void> setProvider(String providerId) async {
+    try {
+      print('[SettingsProvider.setProvider] Установка провайдера: $providerId');
+      await _storage.saveSelectedProvider(providerId);
+
+      // Получаем провайдер
+      final provider = ProviderFactory.getProvider(providerId);
+      if (provider != null) {
+        // Проверяем, есть ли уже сохранённая модель для этого провайдера
+        final savedModel = await _storage.getModelName();
+        print('[SettingsProvider.setProvider] Сохранённая модель: "$savedModel", дефолтная для провайдера: "${provider.defaultModel}"');
+
+        // Определяем, какую модель использовать
+        String modelToUse;
+        final bool isDefaultGLMModel = savedModel == 'glm-4.7';
+        final bool isCurrentProviderGLM = providerId == 'glm';
+
+        // Если текущий провайдер не GLM, а сохранённая модель - дефолтная GLM, используем дефолтную модель нового провайдера
+        if (!isCurrentProviderGLM && isDefaultGLMModel) {
+          modelToUse = provider.defaultModel;
+          print('[SettingsProvider.setProvider] Замена дефолтной GLM модели на: "$modelToUse"');
+          await _storage.saveModelName(modelToUse);
+        } else if (savedModel.isEmpty) {
+          modelToUse = provider.defaultModel;
+          print('[SettingsProvider.setProvider] Пустая модель, используем дефолтную: "$modelToUse"');
+          await _storage.saveModelName(modelToUse);
+        } else {
+          modelToUse = savedModel;
+          print('[SettingsProvider.setProvider] Используем сохранённую модель: "$modelToUse"');
+        }
+
+        state = state.copyWith(
+          selectedProviderId: providerId,
+          modelName: modelToUse,
+        );
+      } else {
+        state = state.copyWith(selectedProviderId: providerId);
+      }
+    } catch (e) {
+      print('[SettingsProvider.setProvider] Ошибка: $e');
+    }
+  }
+
+  /// Установка названия модели
+  Future<void> setModelName(String modelName) async {
+    try {
+      print('[SettingsProvider.setModelName] Сохранение модели: "$modelName"');
+      await _storage.saveModelName(modelName);
+      state = state.copyWith(modelName: modelName);
+      print('[SettingsProvider.setModelName] Модель сохранена успешно');
+    } catch (e) {
+      print('[SettingsProvider.setModelName] Ошибка: $e');
+    }
+  }
+
+  /// Сохранение API ключа OpenRouter
+  Future<bool> setOpenRouterApiKey(String apiKey) async {
+    if (apiKey.trim().isEmpty) {
+      return false;
+    }
+
+    try {
+      await _storage.saveOpenRouterApiKey(apiKey.trim());
+      state = state.copyWith(
+        maskedOpenRouterApiKey: _maskApiKey(apiKey.trim()),
+        isValidOpenRouterApiKey: true,
+      );
+      return true;
+    } catch (e) {
+      return false;
+    }
+  }
+
+  /// Удаление API ключа OpenRouter
+  Future<void> clearOpenRouterApiKey() async {
+    try {
+      await _storage.deleteOpenRouterApiKey();
+      state = state.copyWith(
+        maskedOpenRouterApiKey: null,
+        isValidOpenRouterApiKey: false,
+      );
+    } catch (e) {
+      // Игнорируем ошибки
+    }
+  }
+
+  /// Получение API ключа для текущего провайдера
+  Future<String?> getApiKey() async {
+    final providerId = state.selectedProviderId;
+    if (providerId == 'openrouter') {
+      return await _storage.getOpenRouterApiKey();
+    } else {
+      return await _storage.getApiKey();
+    }
+  }
+
+  /// Получение объекта текущего провайдера
+  AIProvider getCurrentProvider() {
+    final providerId = state.selectedProviderId;
+    return ProviderFactory.getProvider(providerId) ?? ProviderFactory.getDefaultProvider();
   }
 }
 

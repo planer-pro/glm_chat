@@ -15,6 +15,15 @@ const String _sessionsKey = 'chat_sessions';
 /// Ключ для хранения ID активной сессии
 const String _activeSessionIdKey = 'active_session_id';
 
+/// Ключ для хранения выбранного провайдера
+const String _selectedProviderKey = 'selected_provider';
+
+/// Ключ для хранения названия модели
+const String _modelNameKey = 'model_name';
+
+/// Ключ для хранения API ключа OpenRouter
+const String _openRouterApiKeyKey = 'openrouter_api_key';
+
 /// Сервис для безопасного хранения API ключа
 class StorageService {
   final FlutterSecureStorage _storage;
@@ -172,6 +181,85 @@ class StorageService {
       await _storage.write(key: _requestTimeoutKey, value: seconds.toString());
     } catch (e) {
       throw Exception('Ошибка при сохранении таймаута: $e');
+    }
+  }
+
+  // ========== Методы для работы с провайдерами и моделями ==========
+
+  /// Сохранение ID выбранного провайдера
+  ///
+  /// [providerId] - ID провайдера (например, 'glm' или 'openrouter')
+  Future<void> saveSelectedProvider(String providerId) async {
+    try {
+      await _storage.write(key: _selectedProviderKey, value: providerId);
+    } catch (e) {
+      throw Exception('Ошибка при сохранении провайдера: $e');
+    }
+  }
+
+  /// Получение ID выбранного провайдера
+  ///
+  /// Возвращает 'glm' по умолчанию если провайдер не выбран
+  Future<String> getSelectedProvider() async {
+    try {
+      final value = await _storage.read(key: _selectedProviderKey);
+      return value ?? 'glm';
+    } catch (e) {
+      return 'glm';
+    }
+  }
+
+  /// Сохранение названия модели
+  ///
+  /// [modelName] - название модели для сохранения
+  Future<void> saveModelName(String modelName) async {
+    try {
+      await _storage.write(key: _modelNameKey, value: modelName);
+    } catch (e) {
+      throw Exception('Ошибка при сохранении названия модели: $e');
+    }
+  }
+
+  /// Получение названия модели
+  ///
+  /// Возвращает 'glm-4.7' по умолчанию если модель не выбрана
+  Future<String> getModelName() async {
+    try {
+      final value = await _storage.read(key: _modelNameKey);
+      return value ?? 'glm-4.7';
+    } catch (e) {
+      return 'glm-4.7';
+    }
+  }
+
+  /// Сохранение API ключа OpenRouter
+  ///
+  /// [apiKey] - API ключ OpenRouter для сохранения
+  Future<void> saveOpenRouterApiKey(String apiKey) async {
+    try {
+      await _storage.write(key: _openRouterApiKeyKey, value: apiKey);
+    } catch (e) {
+      throw Exception('Ошибка при сохранении API ключа OpenRouter: $e');
+    }
+  }
+
+  /// Получение API ключа OpenRouter
+  ///
+  /// Возвращает null если ключ не найден
+  Future<String?> getOpenRouterApiKey() async {
+    try {
+      return await _storage.read(key: _openRouterApiKeyKey);
+    } catch (e) {
+      throw Exception('Ошибка при чтении API ключа OpenRouter: $e');
+    }
+  }
+
+  /// Удаление API ключа OpenRouter
+  Future<void> deleteOpenRouterApiKey() async {
+    try {
+      await _storage.delete(key: _openRouterApiKeyKey);
+    } catch (e) {
+      throw Exception('Ошибка при удалении API ключа OpenRouter: $e');
     }
   }
 }
