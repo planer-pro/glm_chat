@@ -76,11 +76,17 @@ class ChatNotifier extends StateNotifier<ChatState> {
   Future<void> _initializeSession() async {
     final sessionManager = _ref.read(sessionManagerProvider.notifier);
 
-    // Ждём завершения загрузки сессий (проверяем isLoading)
-    await sessionManager.loadSessions();
+    // Ждём завершения загрузки сессий (слушаем состояние)
+    // Проверяем состояние пока не завершится загрузка
+    int attempts = 0;
+    const maxAttempts = 50; // 5 секунд максимум
 
-    // Ждём немного для обновления состояния
-    await Future.delayed(const Duration(milliseconds: 50));
+    while (sessionManager.state.isLoading && attempts < maxAttempts) {
+      await Future.delayed(const Duration(milliseconds: 100));
+      attempts++;
+    }
+
+    print('[ChatNotifier._initializeSession] Ждали загрузки ${attempts * 100}ms');
 
     // Получаем активную сессию
     final activeSession = sessionManager.getActiveSession();
