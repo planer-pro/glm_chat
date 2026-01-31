@@ -727,6 +727,20 @@ Material 3 dark theme configured in `lib/core/theme/app_theme.dart`. App uses `t
 - **SHIFT+ENTER** - New line
 - Click ❌ button - Cancel editing
 
+### 2026-01-31: Simplified GLM Model Selection
+**Refactor**: Reduced GLM model list from 29 to 4 main models for better UX.
+
+**Implementation**:
+- Removed legacy models (glm-3 series, codegeex series)
+- Removed experimental models (glm-4-flash, glm-4-plus, glm-4-long, etc.)
+- Kept only main stable models: glm-4.7, glm-4.6, glm-4.5, glm-4.5-air
+- Simplified user choice by reducing decision paralysis
+
+**Changes**:
+- Modified: `lib/providers/settings_provider.dart` - Reduced GLM models list to 4
+- Updated: `CLAUDE.md` - Documentation update
+- Updated: `README.md` - Documentation update
+
 ### 2026-01-31: Dropdown Model Selection & Enhanced Error Handling
 **New Features**: Replaced Autocomplete with Dropdown for model selection, added comprehensive error messages.
 
@@ -740,12 +754,10 @@ Material 3 dark theme configured in `lib/core/theme/app_theme.dart`. App uses `t
    - Disabled separator items (visual grouping only)
    - Model count display
 
-2. **Extended GLM Models List** (`lib/providers/settings_provider.dart`):
-   - Added 29 GLM models including legacy versions
-   - GLM-4 series: glm-4.7, glm-4-plus, glm-4-flash, glm-4-air, glm-4-airx, glm-4-long
-   - GLM-3 series: glm-3-turbo, glm-3-turbo-0524, glm-3, glm-3a
-   - CodeGeeX series: codegeex-4, codegeex-4-all
-   - Sorted alphabetically for easy navigation
+2. **GLM Models List** (`lib/providers/settings_provider.dart`):
+   - 4 main GLM models for simplified selection
+   - Models: glm-4.7, glm-4.6, glm-4.5, glm-4.5-air
+   - Legacy models (glm-3, codegeex) removed for cleaner UX
 
 3. **OpenRouter API Integration** (`lib/services/api_service.dart`):
    - Added `ApiModel` class for parsing model list responses

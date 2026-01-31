@@ -13,7 +13,7 @@ GLM Chat is a professional Flutter application for communicating with AI models 
 
 - **Professional Dark Theme** - Material 3 design with minimalistic UI
 - **Multiple AI Providers** - Support for GLM (Zhipu AI) and OpenRouter
-  - GLM: 29 models including glm-4.7, glm-4-plus, glm-3-turbo, codegeex-4
+  - GLM: 4 main models (glm-4.7, glm-4.6, glm-4.5, glm-4.5-air)
   - OpenRouter: 300+ models from Anthropic, OpenAI, Google, Meta, DeepSeek, etc.
   - Easy provider switching via dropdown
   - Automatic model validation on provider switch
@@ -135,7 +135,7 @@ Note: OpenRouter provides access to multiple AI models (Claude, GPT-4, Gemini, L
 The app provides several customization options:
 
 - **AI Provider** - Choose between GLM (Zhipu AI) or OpenRouter
-- **Model Selection** - Select from 29+ GLM models or 300+ OpenRouter models via dropdown
+- **Model Selection** - Select from 4 GLM models or 300+ OpenRouter models via dropdown
   - Models grouped by provider (OpenRouter)
   - Automatic model loading from API
   - Alphabetically sorted within groups
@@ -173,7 +173,7 @@ GLM Chat - профессиональное Flutter приложение для 
 
 - **Профессиональная тёмная тема** - Дизайн Material 3 с минималистичным интерфейсом
 - **Множество AI провайдеров** - Поддержка GLM (Zhipu AI) и OpenRouter
-  - GLM: 29 моделей включая glm-4.7, glm-4-plus, glm-3-turbo, codegeex-4
+  - GLM: 4 основные модели (glm-4.7, glm-4.6, glm-4.5, glm-4.5-air)
   - OpenRouter: 300+ моделей от Anthropic, OpenAI, Google, Meta, DeepSeek и др.
   - Лёгкое переключение провайдеров через dropdown
   - Автоматическая валидация модели при смене провайдера
@@ -294,7 +294,7 @@ flutter run
 Приложение предоставляет различные настройки:
 
 - **AI провайдер** - Выбор между GLM (Zhipu AI) или OpenRouter
-- **Выбор модели** - Выбор из 29+ моделей GLM или 300+ моделей OpenRouter через dropdown
+- **Выбор модели** - Выбор из 4 моделей GLM или 300+ моделей OpenRouter через dropdown
   - Модели сгруппированы по провайдеру (OpenRouter)
   - Автоматическая загрузка моделей из API
   - Сортировка по алфавиту внутри групп
