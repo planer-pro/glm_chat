@@ -5,6 +5,7 @@ import '../../providers/settings_provider.dart';
 import '../chat/message_bubble.dart';
 import '../chat/chat_input_field.dart';
 import '../settings/settings_screen.dart';
+import '../sessions/session_drawer.dart';
 
 /// Главный экран чата
 class ChatScreen extends ConsumerStatefulWidget {
@@ -16,6 +17,9 @@ class ChatScreen extends ConsumerStatefulWidget {
 
 class _ChatScreenState extends ConsumerState<ChatScreen> {
   final ScrollController _scrollController = ScrollController();
+
+  /// GlobalKey для управления Drawer (боковым меню)
+  final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
 
   @override
   void dispose() {
@@ -53,7 +57,14 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
     }
 
     return Scaffold(
+      key: _scaffoldKey,
+      drawer: const SessionDrawer(),
       appBar: AppBar(
+        leading: IconButton(
+          icon: const Icon(Icons.menu),
+          onPressed: () => _scaffoldKey.currentState?.openDrawer(),
+          tooltip: 'История чатов',
+        ),
         title: const Text(
           'GLM Chat',
           style: TextStyle(

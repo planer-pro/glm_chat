@@ -3,8 +3,10 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../data/models/message.dart';
 import '../data/models/attached_file.dart';
 import '../data/models/chat_request.dart';
+import '../data/models/chat_session.dart';
 import '../services/api_service.dart';
 import '../providers/settings_provider.dart';
+import 'session_provider.dart';
 
 /// Состояние чата
 class ChatState {
@@ -23,12 +25,16 @@ class ChatState {
   /// Текст редактируемого сообщения
   final String? editingMessageText;
 
+  /// ID текущей сессии
+  final String? currentSessionId;
+
   ChatState({
     this.messages = const [],
     this.isLoading = false,
     this.error,
     this.editingMessageId,
     this.editingMessageText,
+    this.currentSessionId,
   });
 
   ChatState copyWith({
@@ -37,6 +43,7 @@ class ChatState {
     String? error,
     String? editingMessageId,
     String? editingMessageText,
+    String? currentSessionId,
   }) {
     return ChatState(
       messages: messages ?? this.messages,
@@ -44,6 +51,7 @@ class ChatState {
       error: error,
       editingMessageId: editingMessageId ?? this.editingMessageId,
       editingMessageText: editingMessageText ?? this.editingMessageText,
+      currentSessionId: currentSessionId ?? this.currentSessionId,
     );
   }
 }
@@ -54,12 +62,37 @@ class ChatNotifier extends StateNotifier<ChatState> {
   final Ref _ref;
   StreamSubscription? _streamSubscription;
 
-  ChatNotifier(this._apiService, this._ref) : super(ChatState());
+  ChatNotifier(this._apiService, this._ref) : super(ChatState()) {
+    _initializeSession();
+  }
 
   @override
   void dispose() {
     _streamSubscription?.cancel();
     super.dispose();
+  }
+
+  /// Инициализация сессии при запуске
+  Future<void> _initializeSession() async {
+    final sessionManager = _ref.read(sessionManagerProvider.notifier);
+
+    // Ждём завершения загрузки сессий
+    await Future.delayed(const Duration(milliseconds: 100));
+
+    // Получаем активную сессию
+    final activeSession = sessionManager.getActiveSession();
+
+    if (activeSession != null) {
+      // Загружаем сообщения из активной сессии
+      state = state.copyWith(
+        messages: activeSession.messages,
+        currentSessionId: activeSession.id,
+      );
+    } else {
+      // Создаём новую сессию
+      final sessionId = await sessionManager.createSession();
+      state = state.copyWith(currentSessionId: sessionId);
+    }
   }
 
   /// Отправка сообщения в API с потоковым выводом
@@ -150,6 +183,8 @@ class ChatNotifier extends StateNotifier<ChatState> {
         },
         onDone: () {
           state = state.copyWith(isLoading: false);
+          // Автосохранение сессии после получения ответа
+          _saveCurrentSession();
         },
       );
     } catch (e) {
@@ -157,6 +192,29 @@ class ChatNotifier extends StateNotifier<ChatState> {
         isLoading: false,
         error: e.toString(),
       );
+    }
+  }
+
+  /// Сохранение текущей сессии
+  Future<void> _saveCurrentSession() async {
+    final sessionId = state.currentSessionId;
+    if (sessionId == null) return;
+
+    try {
+      final sessionManager = _ref.read(sessionManagerProvider.notifier);
+      final currentSession = sessionManager.state.sessions
+          .firstWhere((s) => s.id == sessionId, orElse: () {
+        // Если сессия не найдена, создаём новую
+        return ChatSession(
+          id: sessionId,
+          messages: state.messages,
+        );
+      });
+
+      final updatedSession = currentSession.withMessages(state.messages);
+      await sessionManager.updateSession(updatedSession);
+    } catch (e) {
+      print('Ошибка при сохранении сессии: $e');
     }
   }
 
@@ -206,10 +264,32 @@ class ChatNotifier extends StateNotifier<ChatState> {
     await sendMessage(newContent);
   }
 
-  /// Очистка истории чата
-  void clearChat() {
+  /// Очистка истории чата и создание новой сессии
+  Future<void> clearChat() async {
     _streamSubscription?.cancel();
-    state = ChatState();
+
+    final sessionManager = _ref.read(sessionManagerProvider.notifier);
+
+    // Создаём новую сессию
+    final newSessionId = await sessionManager.createSession();
+
+    state = ChatState(currentSessionId: newSessionId);
+  }
+
+  /// Загрузка сообщений из сессии
+  Future<void> loadSession(String sessionId) async {
+    final sessionManager = _ref.read(sessionManagerProvider.notifier);
+    final session = sessionManager.state.sessions
+        .firstWhere((s) => s.id == sessionId);
+
+    // Устанавливаем активную сессию
+    await sessionManager.setActiveSession(sessionId);
+
+    // Загружаем сообщения
+    state = state.copyWith(
+      messages: session.messages,
+      currentSessionId: sessionId,
+    );
   }
 
   /// Очистка ошибки

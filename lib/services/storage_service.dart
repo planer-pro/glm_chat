@@ -1,3 +1,5 @@
+import 'dart:convert';
+
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 
 /// Ключ для хранения API ключа
@@ -5,6 +7,12 @@ const String _apiKeyKey = 'glm_api_key';
 
 /// Ключ для хранения размера шрифта кода
 const String _codeFontSizeKey = 'code_font_size';
+
+/// Ключ для хранения списка сессий
+const String _sessionsKey = 'chat_sessions';
+
+/// Ключ для хранения ID активной сессии
+const String _activeSessionIdKey = 'active_session_id';
 
 /// Сервис для безопасного хранения API ключа
 class StorageService {
@@ -83,6 +91,61 @@ class StorageService {
       await _storage.write(key: _codeFontSizeKey, value: size.toString());
     } catch (e) {
       throw Exception('Ошибка при сохранении размера шрифта: $e');
+    }
+  }
+
+  // ========== Методы для работы с сессиями ==========
+
+  /// Сохранение списка сессий в формате JSON
+  ///
+  /// [sessionsJson] - JSON строка с массивом сессий
+  Future<void> saveSessions(String sessionsJson) async {
+    try {
+      await _storage.write(key: _sessionsKey, value: sessionsJson);
+    } catch (e) {
+      throw Exception('Ошибка при сохранении сессий: $e');
+    }
+  }
+
+  /// Получение списка сессий в формате JSON
+  ///
+  /// Возвращает null если сессии не найдены
+  Future<String?> getSessions() async {
+    try {
+      return await _storage.read(key: _sessionsKey);
+    } catch (e) {
+      throw Exception('Ошибка при чтении сессий: $e');
+    }
+  }
+
+  /// Сохранение ID активной сессии
+  ///
+  /// [sessionId] - ID сессии для сохранения
+  Future<void> saveActiveSessionId(String sessionId) async {
+    try {
+      await _storage.write(key: _activeSessionIdKey, value: sessionId);
+    } catch (e) {
+      throw Exception('Ошибка при сохранении ID активной сессии: $e');
+    }
+  }
+
+  /// Получение ID активной сессии
+  ///
+  /// Возвращает null если активная сессия не установлена
+  Future<String?> getActiveSessionId() async {
+    try {
+      return await _storage.read(key: _activeSessionIdKey);
+    } catch (e) {
+      throw Exception('Ошибка при чтении ID активной сессии: $e');
+    }
+  }
+
+  /// Удаление ID активной сессии
+  Future<void> deleteActiveSessionId() async {
+    try {
+      await _storage.delete(key: _activeSessionIdKey);
+    } catch (e) {
+      throw Exception('Ошибка при удалении ID активной сессии: $e');
     }
   }
 }
