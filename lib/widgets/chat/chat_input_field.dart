@@ -232,7 +232,7 @@ class _ChatInputFieldState extends ConsumerState<ChatInputField> {
                   ),
                   SizedBox(width: 8),
                   Text(
-                    'Режим редактирования (ESC — отмена)',
+                    'Режим редактирования (кнопка X - отмена)',
                     style: TextStyle(
                       color: Color(0xFF60A5FA),
                       fontSize: 12,
