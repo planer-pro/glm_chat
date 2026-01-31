@@ -109,12 +109,47 @@ API keys stored via `flutter_secure_storage` (lib/services/storage_service.dart)
 - Keys are encrypted at rest
 - Use `SettingsProvider` to access, never access `StorageService` directly from widgets
 
+### Session Management
+
+**ChatSession Model** (lib/data/models/chat_session.dart):
+- Represents a chat session with id, title, messages, createdAt, updatedAt
+- Title auto-generated from first user message
+- Methods: `toJson()`, `fromJson()`, `copyWith()`
+
+**SessionManagerProvider** (lib/providers/session_provider.dart):
+- `SessionManagerState` - holds list of sessions and active session ID
+- `SessionManagerNotifier` - manages sessions:
+  - `loadSessions()` - загрузка сессий из хранилища
+  - `createSession()` - создание новой сессии
+  - `updateSession()` - обновление существующей сессии
+  - `deleteSession()` - удаление сессии
+  - `deleteAllSessions()` - удаление всех сессий
+  - `setActiveSession()` - переключение активной сессии
+  - `getActiveSession()` - получение активной сессии
+
+**Session Storage** (lib/services/storage_service.dart):
+- `saveSessions(String sessionsJson)` - сохранение списка сессий
+- `getSessions()` - загрузка списка сессий
+- `saveActiveSessionId(String sessionId)` - сохранение ID активной сессии
+- `getActiveSessionId()` - получение ID активной сессии
+
+**UI Components**:
+- `SessionDrawer` (lib/widgets/sessions/session_drawer.dart) - боковое меню со списком сессий
+- `SessionListItem` (lib/widgets/sessions/session_list_item.dart) - элемент списка сессий
+
+**Integration**:
+- При запуске: загружаются сессии → активируется последняя или создаётся новая
+- При отправке сообщения: автосохранение сессии
+- При переключении: загрузка сообщений выбранной сессии
+- Кнопка меню (гамбургер) в AppBar открывает/закрывает боковое меню
+
 ### Widget Organization
 
 ```
 lib/widgets/
 ├── chat/           # Chat-specific UI (ChatScreen, MessageBubble, ChatInputField)
 ├── code/           # Code rendering (CodeBlockWidget, CopyButton)
+├── sessions/       # Session management (SessionDrawer, SessionListItem)
 └── settings/       # Settings screen
 ```
 
@@ -178,6 +213,71 @@ Material 3 dark theme configured in `lib/core/theme/app_theme.dart`. App uses `t
 - Loaded on app startup via `_loadSettings()`
 
 ## Recent Changes
+
+### 2026-01-31: Session Management & Dependency Updates
+**New Feature**: Added side drawer with chat history management.
+
+**Implementation**:
+1. **Created `ChatSession` model** (`lib/data/models/chat_session.dart`):
+   - Fields: id, title, messages, createdAt, updatedAt
+   - Auto-generated title from first user message
+   - Methods: `toJson()`, `fromJson()`, `copyWith()`
+
+2. **Extended `StorageService`** (`lib/services/storage_service.dart`):
+   - `saveSessions()` - сохранение списка сессий в JSON
+   - `getSessions()` - загрузка списка сессий
+   - `saveActiveSessionId()` - сохранение ID активной сессии
+   - `getActiveSessionId()` - получение ID активной сессии
+
+3. **Created `SessionProvider`** (`lib/providers/session_provider.dart`):
+   - `SessionManagerState` - список сессий + активная сессия
+   - `SessionManagerNotifier` - управление сессиями
+   - Provider: `sessionManagerProvider`
+
+4. **Updated `ChatProvider`** (`lib/providers/chat_provider.dart`):
+   - Добавлено `currentSessionId` в `ChatState`
+   - `sendMessage()` автосохраняет сессию
+   - `loadSession()` загружает сообщения сессии
+   - `clearChat()` создаёт новую сессию
+
+5. **Created UI Components**:
+   - `SessionDrawer` (`lib/widgets/sessions/session_drawer.dart`) - боковое меню
+   - `SessionListItem` (`lib/widgets/sessions/session_list_item.dart`) - элемент списка
+
+6. **Updated `ChatScreen`** (`lib/widgets/chat/chat_screen.dart`):
+   - Добавлен Drawer в Scaffold
+   - Кнопка меню (гамбургер) в AppBar
+   - Интеграция с SessionManagerProvider
+
+**Dependencies Updated**:
+- flutter_riverpod: ^2.5.0 → ^3.2.0
+- riverpod: ^3.2.0 (новая зависимость)
+- flutter_markdown: ^0.7.0 → flutter_markdown_plus: ^0.7.0
+- flutter_secure_storage: ^9.2.0 → ^10.0.0
+- file_picker: ^8.0.0 → ^10.3.10
+- cross_file: ^0.3.4 → ^0.3.5+2
+- mime: ^1.0.0 → ^2.0.0
+- uuid: ^4.0.0 (новая зависимость)
+- flutter_lints: ^3.0.0 → ^6.0.0
+- lints: ^6.1.0 (новая зависимость)
+
+**How it works**:
+1. При запуске загружаются сохранённые сессии
+2. Активируется последняя сессия или создаётся новая
+3. Каждое сообщение автосохраняется
+4. Боковое меню показывает все сессии с заголовками и датами
+5. Можно переключаться между сессиями
+6. Можно удалять отдельные сессии или всю историю
+
+**Changes:**
+- Created: `lib/data/models/chat_session.dart`
+- Created: `lib/providers/session_provider.dart`
+- Created: `lib/widgets/sessions/session_drawer.dart`
+- Created: `lib/widgets/sessions/session_list_item.dart`
+- Modified: `lib/services/storage_service.dart` - Added session storage methods
+- Modified: `lib/providers/chat_provider.dart` - Integrated with sessions
+- Modified: `lib/widgets/chat/chat_screen.dart` - Added drawer
+- Modified: `pubspec.yaml` - Updated dependencies
 
 ### 2026-01-26: Copy Button & Completion Indicator
 **New Features**: Added copy button for assistant responses and in-message completion indicator.

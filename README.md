@@ -13,6 +13,11 @@ GLM Chat is a professional Flutter application for communicating with the GLM 4.
 
 - **Professional Dark Theme** - Material 3 design with minimalistic UI
 - **Chat with GLM 4.7** - Real-time messaging with Zhipu AI's powerful model
+- **Session Management** - Side drawer with chat history
+  - Auto-save sessions after each message
+  - Switch between previous conversations
+  - Delete individual sessions or entire history
+  - Persistent storage across app restarts
 - **File Attachments** - Support for all file types (images, documents, code, etc.)
   - Images are sent directly to the model (GLM-4V vision capability)
   - Text files are read and their content is added to the message
@@ -45,12 +50,13 @@ lib/
 │   ├── constants/          # API constants and configuration
 │   └── theme/              # App theme (Material 3 dark)
 ├── data/                   # Data models
-│   └── models/            # Message, ChatRequest, ChatResponse, AttachedFile
+│   └── models/            # Message, ChatRequest, ChatResponse, AttachedFile, ChatSession
 ├── providers/              # State management (Riverpod)
 ├── services/              # API service and secure storage
 └── widgets/               # UI components
     ├── chat/              # Chat screen, messages, input field
     ├── code/              # Code rendering with syntax highlighting
+    ├── sessions/          # Session drawer and session list items
     └── settings/          # Settings screen
 ```
 
@@ -58,15 +64,17 @@ lib/
 
 | Dependency | Version | Purpose |
 |------------|---------|---------|
-| flutter_riverpod | ^2.5.0 | State management |
+| flutter_riverpod | ^3.2.0 | State management |
+| riverpod | ^3.2.0 | State management core |
 | http | ^1.2.0 | HTTP client |
-| flutter_markdown | ^0.7.0 | Markdown rendering |
+| flutter_markdown_plus | ^0.7.0 | Markdown rendering |
 | flutter_highlight | ^0.7.0 | Code syntax highlighting |
-| flutter_secure_storage | ^9.2.0 | Encrypted key storage |
-| file_picker | ^8.0.0 | File selection |
-| cross_file | ^0.3.4 | Cross-platform file handling |
+| flutter_secure_storage | ^10.0.0 | Encrypted key storage |
+| file_picker | ^10.3.10 | File selection |
+| cross_file | ^0.3.5+2 | Cross-platform file handling |
 | image | ^4.2.0 | Image compression |
-| mime | ^1.0.0 | MIME type detection |
+| mime | ^2.0.0 | MIME type detection |
+| uuid | ^4.0.0 | Session ID generation |
 
 ### Installation
 
@@ -125,6 +133,11 @@ GLM Chat - профессиональное Flutter приложение для 
 
 - **Профессиональная тёмная тема** - Дизайн Material 3 с минималистичным интерфейсом
 - **Чат с GLM 4.7** - Общение в реальном времени с мощной моделью от Zhipu AI
+- **Управление сессиями** - Боковое меню с историей чатов
+  - Автосохранение сессий после каждого сообщения
+  - Переключение между предыдущими разговорами
+  - Удаление отдельных сессий или всей истории
+  - Сохранение истории между запусками приложения
 - **Прикрепление файлов** - Поддержка всех типов файлов (изображения, документы, код и т.д.)
   - Изображения отправляются напрямую модели (возможности зрения GLM-4V)
   - Текстовые файлы читаются, их содержимое добавляется в сообщение
@@ -157,12 +170,13 @@ lib/
 │   ├── constants/          # Константы API и конфигурация
 │   └── theme/              # Тема оформления (Material 3 dark)
 ├── data/                   # Модели данных
-│   └── models/            # Message, ChatRequest, ChatResponse, AttachedFile
+│   └── models/            # Message, ChatRequest, ChatResponse, AttachedFile, ChatSession
 ├── providers/              # Управление состоянием (Riverpod)
 ├── services/              # API сервис и безопасное хранение
 └── widgets/               # UI компоненты
     ├── chat/              # Экран чата, сообщения, поле ввода
     ├── code/              # Рендеринг кода с подсветкой синтаксиса
+    ├── sessions/          # Боковое меню сессий и элементы списка
     └── settings/          # Экран настроек
 ```
 
@@ -170,15 +184,17 @@ lib/
 
 | Зависимость | Версия | Назначение |
 |-------------|--------|------------|
-| flutter_riverpod | ^2.5.0 | Управление состоянием |
+| flutter_riverpod | ^3.2.0 | Управление состоянием |
+| riverpod | ^3.2.0 | Ядро управления состоянием |
 | http | ^1.2.0 | HTTP клиент |
-| flutter_markdown | ^0.7.0 | Рендеринг Markdown |
+| flutter_markdown_plus | ^0.7.0 | Рендеринг Markdown |
 | flutter_highlight | ^0.7.0 | Подсветка синтаксиса кода |
-| flutter_secure_storage | ^9.2.0 | Зашифрованное хранение ключей |
-| file_picker | ^8.0.0 | Выбор файлов |
-| cross_file | ^0.3.4 | Кроссплатформенная работа с файлами |
+| flutter_secure_storage | ^10.0.0 | Зашифрованное хранение ключей |
+| file_picker | ^10.3.10 | Выбор файлов |
+| cross_file | ^0.3.5+2 | Кроссплатформенная работа с файлами |
 | image | ^4.2.0 | Сжатие изображений |
-| mime | ^1.0.0 | Определение MIME-типов |
+| mime | ^2.0.0 | Определение MIME-типов |
+| uuid | ^4.0.0 | Генерация ID сессий |
 
 ### Установка
 

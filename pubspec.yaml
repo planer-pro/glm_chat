@@ -12,37 +12,42 @@ dependencies:
   cupertino_icons: ^1.0.6
 
   # State management
-  flutter_riverpod: ^2.5.0
+  flutter_riverpod: ^3.2.0
+  riverpod: ^3.2.0
 
   # HTTP client
   http: ^1.2.0
 
-  # Markdown rendering
-  flutter_markdown: ^0.7.0
+  # Markdown rendering (заменённый пакет)
+  flutter_markdown_plus: ^0.7.0
 
   # Code syntax highlighting
   flutter_highlight: ^0.7.0
   highlight: ^0.7.0
 
   # Secure storage
-  flutter_secure_storage: ^9.2.0
+  flutter_secure_storage: ^10.0.0
 
   # File picker для прикрепления файлов
-  file_picker: ^8.0.0
+  file_picker: ^10.3.10
 
   # Работа с файлами
-  cross_file: ^0.3.4
+  cross_file: ^0.3.5+2
 
   # Конвертация изображений в base64
   image: ^4.2.0
 
   # Определение MIME типа
-  mime: ^1.0.0
+  mime: ^2.0.0
+
+  # Генерация уникальных ID для сессий
+  uuid: ^4.0.0
 
 dev_dependencies:
   flutter_test:
     sdk: flutter
-  flutter_lints: ^3.0.0
+  flutter_lints: ^6.0.0
+  lints: ^6.1.0
 
 flutter:
   uses-material-design: true
