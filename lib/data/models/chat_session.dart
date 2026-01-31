@@ -40,26 +40,44 @@ class ChatSession {
         messages.where((m) => m.isUser).toList().firstOrNull;
 
     if (firstUserMessage != null && firstUserMessage.content.isNotEmpty) {
-      // Обрезаем текст до 50 символов и добавляем многоточие если нужно
-      final content = firstUserMessage.content.trim();
-      final maxLength = 50;
+      // Очищаем текст: убираем переводы строк и множественные пробелы
+      String content = firstUserMessage.content
+          .replaceAll('\n', ' ')
+          .replaceAll('\r', ' ')
+          .replaceAll(RegExp(r'\s+'), ' ')
+          .trim();
+
+      // Максимальная длина заголовка
+      const maxLength = 60;
 
       if (content.length <= maxLength) {
         return content;
       }
 
-      // Разбиваем на слова и обрезаем до последнего полного слова
+      // Разбиваем на слова и берём столько, сколько поместится в лимит
       final words = content.split(' ');
-      String result = '';
+      final buffer = StringBuffer();
+
       for (final word in words) {
-        if ((result + word).length <= maxLength) {
-          result += (result.isEmpty ? '' : ' ') + word;
+        final potentialLength = buffer.isEmpty
+            ? word.length
+            : buffer.length + 1 + word.length; // +1 для пробела
+
+        if (potentialLength <= maxLength) {
+          if (buffer.isNotEmpty) {
+            buffer.write(' ');
+          }
+          buffer.write(word);
         } else {
           break;
         }
       }
 
-      return result.isEmpty ? content.substring(0, maxLength) : result + '...';
+      final result = buffer.toString();
+      // Если результат пустой (очень длинное первое слово), обрезаем жёстко
+      return result.isEmpty
+          ? '${content.substring(0, maxLength)}...'
+          : '$result...';
     }
 
     return 'Новый чат';

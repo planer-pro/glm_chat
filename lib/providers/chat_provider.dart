@@ -211,7 +211,19 @@ class ChatNotifier extends StateNotifier<ChatState> {
         );
       });
 
-      final updatedSession = currentSession.withMessages(state.messages);
+      // Если это первое сообщение пользователя, обновляем заголовок
+      ChatSession updatedSession = currentSession.withMessages(state.messages);
+
+      // Проверяем: если сессия была пустой и теперь есть сообщения - обновляем заголовок
+      final wasEmpty = currentSession.messages.isEmpty ||
+          !currentSession.messages.any((m) => m.isUser);
+      final hasUserMessages = state.messages.any((m) => m.isUser);
+
+      if (wasEmpty && hasUserMessages) {
+        // Обновляем заголовок на основе первого сообщения пользователя
+        updatedSession = updatedSession.withUpdatedTitle();
+      }
+
       await sessionManager.updateSession(updatedSession);
     } catch (e) {
       print('Ошибка при сохранении сессии: $e');
