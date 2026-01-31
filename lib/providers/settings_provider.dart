@@ -2,6 +2,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../services/storage_service.dart';
 import '../services/providers/base_provider.dart';
 import '../services/providers/provider_factory.dart';
+import 'service_providers.dart';
 
 /// Состояние настроек
 class SettingsState {
@@ -29,6 +30,9 @@ class SettingsState {
   /// Валиден ли API ключ OpenRouter
   final bool isValidOpenRouterApiKey;
 
+  /// Список доступных моделей для OpenRouter
+  final List<String> availableModels;
+
   SettingsState({
     this.maskedApiKey = '',
     this.isValidApiKey = false,
@@ -38,6 +42,7 @@ class SettingsState {
     this.modelName = 'glm-4.7',
     this.maskedOpenRouterApiKey,
     this.isValidOpenRouterApiKey = false,
+    this.availableModels = const [],
   });
 
   SettingsState copyWith({
@@ -49,6 +54,7 @@ class SettingsState {
     String? modelName,
     String? maskedOpenRouterApiKey,
     bool? isValidOpenRouterApiKey,
+    List<String>? availableModels,
   }) {
     return SettingsState(
       maskedApiKey: maskedApiKey ?? this.maskedApiKey,
@@ -59,6 +65,7 @@ class SettingsState {
       modelName: modelName ?? this.modelName,
       maskedOpenRouterApiKey: maskedOpenRouterApiKey ?? this.maskedOpenRouterApiKey,
       isValidOpenRouterApiKey: isValidOpenRouterApiKey ?? this.isValidOpenRouterApiKey,
+      availableModels: availableModels ?? this.availableModels,
     );
   }
 }
@@ -66,8 +73,9 @@ class SettingsState {
 /// Notifier для управления настройками
 class SettingsNotifier extends StateNotifier<SettingsState> {
   final StorageService _storage;
+  final Ref ref;
 
-  SettingsNotifier(this._storage) : super(SettingsState()) {
+  SettingsNotifier(this._storage, this.ref) : super(SettingsState()) {
     _loadSettings();
   }
 
@@ -181,14 +189,18 @@ class SettingsNotifier extends StateNotifier<SettingsState> {
         final bool isDefaultGLMModel = savedModel == 'glm-4.7';
         final bool isCurrentProviderGLM = providerId == 'glm';
 
+        // Проверяем, поддерживает ли новый провайдер сохранённую модель
+        final bool isModelSupported = provider.isModelSupported(savedModel);
+
         // Если текущий провайдер не GLM, а сохранённая модель - дефолтная GLM, используем дефолтную модель нового провайдера
         if (!isCurrentProviderGLM && isDefaultGLMModel) {
           modelToUse = provider.defaultModel;
           print('[SettingsProvider.setProvider] Замена дефолтной GLM модели на: "$modelToUse"');
           await _storage.saveModelName(modelToUse);
-        } else if (savedModel.isEmpty) {
+        } else if (savedModel.isEmpty || !isModelSupported) {
+          // Если модель не поддерживается новым провайдером, используем дефолтную
           modelToUse = provider.defaultModel;
-          print('[SettingsProvider.setProvider] Пустая модель, используем дефолтную: "$modelToUse"');
+          print('[SettingsProvider.setProvider] Модель "$savedModel" не поддерживается провайдером $providerId, используем дефолтную: "$modelToUse"');
           await _storage.saveModelName(modelToUse);
         } else {
           modelToUse = savedModel;
@@ -265,6 +277,101 @@ class SettingsNotifier extends StateNotifier<SettingsState> {
     final providerId = state.selectedProviderId;
     return ProviderFactory.getProvider(providerId) ?? ProviderFactory.getDefaultProvider();
   }
+
+  /// Загрузка списка доступных моделей для текущего провайдера
+  Future<void> loadAvailableModels() async {
+    final provider = getCurrentProvider();
+    print('[SettingsNotifier] Загрузка моделей для провайдера: ${provider.providerId}');
+
+    if (provider.providerId == 'glm') {
+      // Для GLM используем расширенный список моделей (включая legacy)
+      final glmModels = [
+        // GLM-4 серия (актуальные)
+        'glm-4.7',
+        'glm-4-plus',
+        'glm-4-flash',
+        'glm-4-air',
+        'glm-4-airx',
+        // GLM-4 серия (старые версии)
+        'glm-4',
+        'glm-4-0520',
+        'glm-4-0204',
+        'glm-4-flashx',
+        'glm-4-long',
+        // GLM-3 серия (legacy)
+        'glm-3-turbo',
+        'glm-3-turbo-0524',
+        'glm-3-turbo-0204',
+        'glm-3',
+        // GLM-3A серия
+        'glm-3a',
+        'glm-3a-0204',
+        // CodeGemma серия
+        'codegeex-4',
+        'codegeex-4-all',
+        'codegeex-4-0520',
+        'codegeex-4-0204',
+      ];
+      // Сортируем по алфавиту
+      glmModels.sort((a, b) => a.toLowerCase().compareTo(b.toLowerCase()));
+      state = state.copyWith(availableModels: glmModels);
+      print('[SettingsNotifier] Загружено ${glmModels.length} моделей GLM');
+    } else if (provider.providerId == 'openrouter') {
+      // Для OpenRouter проверяем API ключ
+      final apiKey = await getApiKey();
+      if (apiKey != null && apiKey.isNotEmpty) {
+        try {
+          final apiService = ref.read(apiServiceProvider);
+          final models = await apiService.getAvailableModels(provider, apiKey);
+          if (models.isNotEmpty) {
+            // Группируем модели по провайдеру и сортируем
+            final grouped = <String, List<String>>{};
+            for (var model in models) {
+              final parts = model.id.split('/');
+              if (parts.length == 2) {
+                final provider = parts[0];
+                // Сохраняем полный ID модели (provider/model)
+                if (!grouped.containsKey(provider)) {
+                  grouped[provider] = [];
+                }
+                grouped[provider]!.add(model.id);  // Используем полный ID
+              }
+            }
+
+            // Сортируем модели внутри каждой группы по алфавиту
+            grouped.forEach((provider, models) {
+              models.sort((a, b) => a.toLowerCase().compareTo(b.toLowerCase()));
+            });
+
+            // Сортируем провайдеры по алфавиту
+            final sortedProviders = grouped.keys.toList()..sort((a, b) => a.toLowerCase().compareTo(b.toLowerCase()));
+
+            // Собираем финальный список сгруппированный по провайдерам
+            final allModels = <String>[];
+            for (var provider in sortedProviders) {
+              allModels.add('── $provider'); // Разделитель группы
+              allModels.addAll(grouped[provider]!);  // Добавляем полные ID моделей
+            }
+
+            state = state.copyWith(availableModels: allModels);
+            print('[SettingsNotifier] Загружено ${grouped.length} провайдеров, ${models.length} моделей из OpenRouter');
+          } else {
+            // Если API не вернул модели, используем примеры
+            state = state.copyWith(availableModels: provider.modelExamples);
+            print('[SettingsNotifier] Используем примеры моделей');
+          }
+        } catch (e) {
+          print('[SettingsNotifier] Ошибка загрузки моделей: $e');
+          // При ошибке используем примеры
+          state = state.copyWith(availableModels: provider.modelExamples);
+        }
+      } else {
+        // Нет API ключа - используем примеры
+        state = state.copyWith(availableModels: provider.modelExamples);
+        print('[SettingsNotifier] Нет API ключа, используем примеры');
+      }
+    }
+  }
 }
 
 /// Провайдер StorageService
@@ -275,5 +382,5 @@ final storageServiceProvider = Provider<StorageService>((ref) {
 /// Провайдер настроек
 final settingsProvider = StateNotifierProvider<SettingsNotifier, SettingsState>((ref) {
   final storage = ref.watch(storageServiceProvider);
-  return SettingsNotifier(storage);
+  return SettingsNotifier(storage, ref);
 });

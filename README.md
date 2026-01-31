@@ -7,14 +7,21 @@
 <a name="english"></a>
 ## English
 
-GLM Chat is a professional Flutter application for communicating with the GLM 4.7 neural network model from Zhipu AI.
+GLM Chat is a professional Flutter application for communicating with AI models through multiple providers.
 
 ### Features
 
 - **Professional Dark Theme** - Material 3 design with minimalistic UI
-- **Chat with GLM 4.7** - Real-time messaging with Zhipu AI's powerful model
+- **Multiple AI Providers** - Support for GLM (Zhipu AI) and OpenRouter
+  - GLM: 29 models including glm-4.7, glm-4-plus, glm-3-turbo, codegeex-4
+  - OpenRouter: 300+ models from Anthropic, OpenAI, Google, Meta, DeepSeek, etc.
+  - Easy provider switching via dropdown
+  - Automatic model validation on provider switch
+  - Model-specific error messages (e.g., insufficient balance)
+- **Chat with AI Models** - Real-time messaging with powerful models
   - Configurable timeout (30-300 seconds, default 120s)
   - Response time logging
+  - Model identity verification (models correctly identify themselves)
 - **Session Management** - Side drawer with chat history
   - Auto-save sessions after each message
   - Switch between previous conversations
@@ -101,22 +108,40 @@ flutter run
 
 ### Getting API Key
 
+**For GLM Provider:**
 1. Visit [Zhipu AI](https://open.bigmodel.cn/)
 2. Register or login to your account
 3. Create an API key
 4. Add the key in the app settings
 
+**For OpenRouter Provider:**
+1. Visit [OpenRouter](https://openrouter.ai/)
+2. Register or login to your account
+3. Create an API key
+4. Add the key in the app settings
+
+Note: OpenRouter provides access to multiple AI models (Claude, GPT-4, Gemini, Llama, etc.) through a single API key and unified interface.
+
 ### Usage
 
-1. On first launch, the app will show the API key setup screen
-2. Enter your API key and click "Save" (or "Сохранить" in Russian)
-3. Start chatting with GLM 4.7!
+1. On first launch, the app will show the settings screen
+2. Select your preferred AI provider (GLM or OpenRouter)
+3. Enter the corresponding API key and click "Save"
+4. Choose a model from the dropdown
+5. Start chatting!
 
 ### Settings
 
 The app provides several customization options:
 
-- **API Key** - Your Zhipu AI API key for accessing GLM 4.7
+- **AI Provider** - Choose between GLM (Zhipu AI) or OpenRouter
+- **Model Selection** - Select from 29+ GLM models or 300+ OpenRouter models via dropdown
+  - Models grouped by provider (OpenRouter)
+  - Automatic model loading from API
+  - Alphabetically sorted within groups
+- **API Keys** - Separate API keys for each provider
+  - GLM API key for Zhipu AI models
+  - OpenRouter API key for all OpenRouter models
 - **Font Size** - Adjust text size for all messages (12-32px)
 - **Response Timeout** - Configure API request timeout (30-300 seconds, default 120s)
   - Higher values allow the model more time for complex queries
@@ -142,14 +167,21 @@ MIT License
 <a name="русский"></a>
 ## Русский
 
-GLM Chat - профессиональное Flutter приложение для общения с нейросетевой моделью GLM 4.7 от компании Zhipu AI.
+GLM Chat - профессиональное Flutter приложение для общения с AI моделями через различные провайдеры.
 
 ### Особенности
 
 - **Профессиональная тёмная тема** - Дизайн Material 3 с минималистичным интерфейсом
-- **Чат с GLM 4.7** - Общение в реальном времени с мощной моделью от Zhipu AI
+- **Множество AI провайдеров** - Поддержка GLM (Zhipu AI) и OpenRouter
+  - GLM: 29 моделей включая glm-4.7, glm-4-plus, glm-3-turbo, codegeex-4
+  - OpenRouter: 300+ моделей от Anthropic, OpenAI, Google, Meta, DeepSeek и др.
+  - Лёгкое переключение провайдеров через dropdown
+  - Автоматическая валидация модели при смене провайдера
+  - Понятные сообщения об ошибках (недостаточно средств и т.д.)
+- **Чат с AI моделями** - Общение в реальном времени с мощными моделями
   - Настраиваемый таймаут ответа (30-300 секунд, по умолчанию 120с)
   - Логирование времени генерации ответа
+  - Проверка идентичности модели (модели правильно представляют себя)
 - **Управление сессиями** - Боковое меню с историей чатов
   - Автосохранение сессий после каждого сообщения
   - Переключение между предыдущими разговорами
@@ -235,22 +267,40 @@ flutter run
 
 ### Получение API ключа
 
+**Для провайдера GLM:**
 1. Перейдите на [Zhipu AI](https://open.bigmodel.cn/)
 2. Зарегистрируйтесь или войдите в аккаунт
 3. Создайте API ключ
 4. Добавьте ключ в настройках приложения
 
+**Для провайдера OpenRouter:**
+1. Перейдите на [OpenRouter](https://openrouter.ai/)
+2. Зарегистрируйтесь или войдите в аккаунт
+3. Создайте API ключ
+4. Добавьте ключ в настройках приложения
+
+Примечание: OpenRouter предоставляет доступ к множеству AI моделей (Claude, GPT-4, Gemini, Llama и др.) через один API ключ и унифицированный интерфейс.
+
 ### Использование
 
-1. При первом запуске приложение покажет экран настройки API ключа
-2. Введите ваш API ключ и нажмите "Сохранить"
-3. Начните общение с GLM 4.7!
+1. При первом запуске приложение покажет экран настроек
+2. Выберите предпочитаемый AI провайдер (GLM или OpenRouter)
+3. Введите соответствующий API ключ и нажмите "Сохранить"
+4. Выберите модель из выпадающего списка
+5. Начните общение!
 
 ### Настройки
 
 Приложение предоставляет различные настройки:
 
-- **API ключ** - Ваш ключ Zhipu AI для доступа к GLM 4.7
+- **AI провайдер** - Выбор между GLM (Zhipu AI) или OpenRouter
+- **Выбор модели** - Выбор из 29+ моделей GLM или 300+ моделей OpenRouter через dropdown
+  - Модели сгруппированы по провайдеру (OpenRouter)
+  - Автоматическая загрузка моделей из API
+  - Сортировка по алфавиту внутри групп
+- **API ключи** - Отдельные API ключи для каждого провайдера
+  - API ключ GLM для моделей Zhipu AI
+  - API ключ OpenRouter для всех моделей OpenRouter
 - **Размер шрифта** - Настройка размера текста для всех сообщений (12-32px)
 - **Таймаут ответа** - Настройка таймаута запроса к API (30-300 секунд, по умолчанию 120с)
   - Большие значения позволяют модели больше времени на сложные запросы

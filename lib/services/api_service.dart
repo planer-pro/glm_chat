@@ -6,12 +6,50 @@ import '../data/models/chat_response.dart';
 import '../services/providers/base_provider.dart';
 import '../services/providers/provider_factory.dart';
 
+/// Модель из списка моделей API
+class ApiModel {
+  final String id;
+  final String name;
+  final String? contextLength;
+  final String? pricing;
+
+  ApiModel({
+    required this.id,
+    required this.name,
+    this.contextLength,
+    this.pricing,
+  });
+
+  factory ApiModel.fromJson(Map<String, dynamic> json) {
+    // Обрабатываем context_length который может быть int или String
+    final contextLengthRaw = json['context_length'];
+    String? contextLength;
+    if (contextLengthRaw != null) {
+      if (contextLengthRaw is int) {
+        contextLength = contextLengthRaw.toString();
+      } else if (contextLengthRaw is String) {
+        contextLength = contextLengthRaw;
+      }
+    }
+
+    return ApiModel(
+      id: json['id']?.toString() ?? '',
+      name: json['name']?.toString() ?? '',
+      contextLength: contextLength,
+      pricing: json['pricing']?.toString(),
+    );
+  }
+}
+
 /// Исключения для API ошибок
 class ApiException implements Exception {
   final String message;
   final int? statusCode;
 
   ApiException(this.message, {this.statusCode});
+
+  /// Текст ошибки для отображения в UI (без префикса ApiException)
+  String get displayText => message;
 
   @override
   String toString() => 'ApiException: $message${statusCode != null ? ' (код: $statusCode)' : ''}';
@@ -58,6 +96,11 @@ class ApiService {
       final requestBody = await request.toJson();
       final url = Uri.parse('${provider.baseUrl}${provider.chatEndpoint}');
 
+      // Логируем запрос для отладки
+      print('[ApiService.createChatCompletion] URL: $url');
+      print('[ApiService.createChatCompletion] Model: ${requestBody['model']}');
+      print('[ApiService.createChatCompletion] Request body: ${jsonEncode(requestBody)}');
+
       final response = await _client
           .post(
             url,
@@ -69,6 +112,8 @@ class ApiService {
       // Обработка ошибок по статус коду
       if (response.statusCode == 401) {
         throw ApiException('Неверный API ключ', statusCode: 401);
+      } else if (response.statusCode == 402) {
+        throw ApiException('Недостаточно средств на балансе. Пополните баланс на сайте провайдера.', statusCode: 402);
       } else if (response.statusCode == 429) {
         throw ApiException('Слишком много запросов. Попробуйте позже.', statusCode: 429);
       } else if (response.statusCode == 400) {
@@ -125,6 +170,11 @@ class ApiService {
       final requestBody = await requestStream.toJson();
       final url = Uri.parse('${provider.baseUrl}${provider.chatEndpoint}');
 
+      // Логируем запрос для отладки
+      print('[ApiService.createStreamingChatCompletion] URL: $url');
+      print('[ApiService.createStreamingChatCompletion] Model: ${requestBody['model']}');
+      print('[ApiService.createStreamingChatCompletion] Request body: ${jsonEncode(requestBody)}');
+
       final stream = _client
           .send(http.Request('POST', url)
             ..headers.addAll(provider.buildHeaders(apiKey))
@@ -136,6 +186,8 @@ class ApiService {
 
       if (response.statusCode == 401) {
         throw ApiException('Неверный API ключ', statusCode: 401);
+      } else if (response.statusCode == 402) {
+        throw ApiException('Недостаточно средств на балансе. Пополните баланс на сайте провайдера.', statusCode: 402);
       } else if (response.statusCode == 429) {
         throw ApiException('Слишком много запросов. Попробуйте позже.', statusCode: 429);
       } else if (response.statusCode == 400) {
@@ -153,6 +205,7 @@ class ApiService {
       }
 
       // Читаем поток SSE
+      int eventCount = 0;
       yield* response.stream
           .transform(utf8.decoder)
           .transform(const LineSplitter())
@@ -165,6 +218,15 @@ class ApiService {
           }
 
           final jsonData = jsonDecode(jsonStr) as Map<String, dynamic>;
+
+          // Логируем первое событие для проверки модели
+          if (eventCount == 0) {
+            final responseModel = jsonData['model'];
+            print('[ApiService.createStreamingChatCompletion] Ответ от модели: $responseModel');
+            print('[ApiService.createStreamingChatCompletion] Полный JSON первого события: $jsonStr');
+            eventCount++;
+          }
+
           final choices = jsonData['choices'] as List?;
 
           if (choices != null && choices.isNotEmpty) {
@@ -220,5 +282,47 @@ class ApiService {
       request,
       timeout: timeout,
     );
+  }
+
+  /// Получение списка доступных моделей для провайдера.
+  ///
+  /// [provider] - провайдер API
+  /// [apiKey] - API ключ
+  /// Возвращает список моделей или пустой список при ошибке
+  Future<List<ApiModel>> getAvailableModels(
+    AIProvider provider,
+    String apiKey, {
+    Duration? timeout,
+  }) async {
+    // Только OpenRouter поддерживает получение списка моделей
+    if (provider.providerId != 'openrouter') {
+      return [];
+    }
+
+    final effectiveTimeout = timeout ?? const Duration(seconds: 30);
+
+    try {
+      final url = Uri.parse('${provider.baseUrl}${provider.modelsEndpoint}');
+      final response = await _client
+          .get(
+            url,
+            headers: provider.buildHeaders(apiKey),
+          )
+          .timeout(effectiveTimeout);
+
+      if (response.statusCode == 200) {
+        final jsonData = jsonDecode(response.body) as Map<String, dynamic>;
+        final data = jsonData['data'] as List?;
+
+        if (data != null) {
+          return data.map((modelJson) => ApiModel.fromJson(modelJson)).toList();
+        }
+      }
+
+      return [];
+    } catch (e) {
+      print('[ApiService.getAvailableModels] Ошибка: $e');
+      return [];
+    }
   }
 }

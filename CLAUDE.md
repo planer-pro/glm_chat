@@ -727,6 +727,70 @@ Material 3 dark theme configured in `lib/core/theme/app_theme.dart`. App uses `t
 - **SHIFT+ENTER** - New line
 - Click ❌ button - Cancel editing
 
+### 2026-01-31: Dropdown Model Selection & Enhanced Error Handling
+**New Features**: Replaced Autocomplete with Dropdown for model selection, added comprehensive error messages.
+
+**Implementation**:
+
+1. **Dropdown Model Selection** (`lib/widgets/settings/settings_screen.dart`):
+   - Replaced Autocomplete TextField with DropdownButtonFormField
+   - Models loaded automatically on settings open and provider switch
+   - Grouped display for OpenRouter models with separators (── provider)
+   - Alphabetical sorting within provider groups
+   - Disabled separator items (visual grouping only)
+   - Model count display
+
+2. **Extended GLM Models List** (`lib/providers/settings_provider.dart`):
+   - Added 29 GLM models including legacy versions
+   - GLM-4 series: glm-4.7, glm-4-plus, glm-4-flash, glm-4-air, glm-4-airx, glm-4-long
+   - GLM-3 series: glm-3-turbo, glm-3-turbo-0524, glm-3, glm-3a
+   - CodeGeeX series: codegeex-4, codegeex-4-all
+   - Sorted alphabetically for easy navigation
+
+3. **OpenRouter API Integration** (`lib/services/api_service.dart`):
+   - Added `ApiModel` class for parsing model list responses
+   - `getAvailableModels()` method fetches models from OpenRouter
+   - Handles int/String conversion for context_length field
+   - Groups models by provider and sorts alphabetically
+   - Falls back to model examples on error or missing API key
+
+4. **Enhanced Error Messages** (`lib/services/api_service.dart`):
+   - 402 error: "Недостаточно средств на балансе. Пополните баланс на сайте провайдера."
+   - Added `displayText` getter to ApiException for clean UI messages
+   - Updated ChatProvider to use `displayText` instead of `toString()`
+
+5. **Model Validation on Provider Switch** (`lib/providers/settings_provider.dart`):
+   - `setProvider()` now validates if current model is supported
+   - Automatically switches to default model if incompatible
+   - Prevents using GLM models with OpenRouter and vice versa
+
+6. **Improved Model Identity Handling** (`lib/data/models/chat_request.dart`):
+   - System prompt forces model to correctly identify itself
+   - Detects identity questions ("какая ты модель", "who are you")
+   - Clears history for identity questions to prevent confusion
+   - Explicit instruction: "Do NOT claim to be ChatGPT, GPT-4, Claude..."
+
+7. **Request Logging** (`lib/services/api_service.dart`):
+   - Logs full request body for debugging
+   - Logs response model field to verify actual model
+   - Tracks provider, timing, and response length
+
+**Benefits**:
+- Easy model selection from organized dropdown
+- 29 GLM models including legacy versions
+- 300+ OpenRouter models grouped by provider
+- Clear error messages for common issues (402 payment required)
+- Models correctly identify themselves
+- Verified model switching (different providers, response times)
+
+**Changes**:
+- Modified: `lib/providers/settings_provider.dart` - Dropdown, loadAvailableModels(), GLM models list, validation
+- Modified: `lib/widgets/settings/settings_screen.dart` - Dropdown UI, group separators, count display
+- Modified: `lib/services/api_service.dart` - ApiModel, getAvailableModels(), error handling, logging
+- Modified: `lib/data/models/chat_request.dart` - System prompt, history filtering for identity questions
+- Modified: `lib/providers/chat_provider.dart` - Uses displayText for error messages
+- Created: `lib/providers/service_providers.dart` - Exports apiServiceProvider
+
 ---
 
 ## Known Issues & Technical Debt

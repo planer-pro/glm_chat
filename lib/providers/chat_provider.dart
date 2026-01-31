@@ -4,8 +4,9 @@ import '../data/models/message.dart';
 import '../data/models/attached_file.dart';
 import '../data/models/chat_request.dart';
 import '../data/models/chat_session.dart';
-import '../services/api_service.dart';
+import '../providers/service_providers.dart';
 import '../providers/settings_provider.dart';
+import '../services/api_service.dart';
 import 'session_provider.dart';
 
 /// Состояние чата
@@ -217,17 +218,22 @@ class ChatNotifier extends StateNotifier<ChatState> {
         },
         onError: (error) {
           final elapsed = DateTime.now().difference(startTime).inSeconds;
-          print('[ChatNotifier.sendMessage] Ошибка через ${elapsed}с: $error');
+          print('[ChatNotifier.sendMessage] Ошибка через $elapsedс: $error');
+          // Извлекаем текст ошибки для отображения в UI
+          String errorText = error.toString();
+          if (error is ApiException) {
+            errorText = error.displayText;
+          }
           state = state.copyWith(
             isLoading: false,
-            error: error.toString(),
+            error: errorText,
           );
         },
         onDone: () {
           final elapsed = DateTime.now().difference(startTime);
           final seconds = elapsed.inSeconds;
           final millis = elapsed.inMilliseconds % 1000;
-          print('[ChatNotifier.sendMessage] Ответ сгенерирован за ${seconds}.${millis.toString().padLeft(3, '0')}с (${elapsed.inMilliseconds}мс)');
+          print('[ChatNotifier.sendMessage] Ответ сгенерирован за $seconds.${millis.toString().padLeft(3, '0')}с ($elapsed.inMillisecondsмс)');
           print('[ChatNotifier.sendMessage] Длина ответа: ${state.messages.last.content.length} символов');
 
           state = state.copyWith(isLoading: false);
@@ -236,9 +242,14 @@ class ChatNotifier extends StateNotifier<ChatState> {
         },
       );
     } catch (e) {
+      // Извлекаем текст ошибки для отображения в UI
+      String errorText = e.toString();
+      if (e is ApiException) {
+        errorText = e.displayText;
+      }
       state = state.copyWith(
         isLoading: false,
-        error: e.toString(),
+        error: errorText,
       );
     }
   }
@@ -365,11 +376,6 @@ class ChatNotifier extends StateNotifier<ChatState> {
     state = state.copyWith(error: null);
   }
 }
-
-/// Провайдер ApiService
-final apiServiceProvider = Provider<ApiService>((ref) {
-  return ApiService();
-});
 
 /// Провайдер состояния чата
 final chatProvider = StateNotifierProvider<ChatNotifier, ChatState>((ref) {

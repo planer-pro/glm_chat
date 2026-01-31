@@ -47,13 +47,6 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
     final shortModel2 = shortModel.split('-').first; // Берем первую часть до дефиса
 
     // Карта коротких названий провайдеров
-    final providerNames = {
-      'glm': 'GLM',
-      'openrouter': 'AI',
-    };
-
-    final providerName = providerNames[providerId] ?? 'AI';
-
     // Для GLM показываем GLM Chat, для других - модель + Chat
     if (providerId == 'glm') {
       return 'GLM Chat';

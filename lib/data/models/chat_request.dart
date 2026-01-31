@@ -52,9 +52,47 @@ class ChatRequest {
 
     print('[ChatRequest.toJson] Конвертировано ${messagesJson.length} сообщений');
 
+    // Проверяем, спрашивает ли пользователь о модели - если да, используем только последнее сообщение
+    final lastMessage = messages.isNotEmpty ? messages.last.content.toLowerCase() : '';
+    final isAskingAboutModel = lastMessage.contains('модель') ||
+        lastMessage.contains('model') ||
+        lastMessage.contains('кто ты') ||
+        lastMessage.contains('who are you') ||
+        lastMessage.contains('как тебя зовут') ||
+        lastMessage.contains('what is your name');
+
+    List<Map<String, dynamic>> finalMessages;
+    if (isAskingAboutModel && messagesJson.length > 1) {
+      // Если спрашивают о модели и есть история - используем только последнее сообщение
+      final lastMessageJson = messagesJson.last;
+      final displayName = model.contains('/') ? model.split('/').last : model;
+
+      final systemPrompt = {
+        'role': 'system',
+        'content': 'You are $model, a large language model. '
+            'Always correctly identify yourself as "$displayName" or "$model". '
+            'Do NOT claim to be ChatGPT, GPT-4, Claude, or any other model.'
+      };
+
+      finalMessages = [systemPrompt, lastMessageJson];
+      print('[ChatRequest.toJson] Вопрос о модели обнаружен, используется только последнее сообщение');
+    } else {
+      // Добавляем system prompt в начало
+      final displayName = model.contains('/') ? model.split('/').last : model;
+
+      final systemPrompt = {
+        'role': 'system',
+        'content': 'You are $model, a large language model. '
+            'Always correctly identify yourself as "$displayName" or "$model". '
+            'Do NOT claim to be ChatGPT, GPT-4, Claude, or any other model.'
+      };
+
+      finalMessages = [systemPrompt, ...messagesJson];
+    }
+
     return {
       'model': model,
-      'messages': messagesJson,
+      'messages': finalMessages,
       'temperature': temperature,
       'max_tokens': maxTokens,
       'stream': stream,

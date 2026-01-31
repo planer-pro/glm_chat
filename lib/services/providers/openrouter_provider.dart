@@ -28,15 +28,86 @@ class OpenRouterProvider implements AIProvider {
   List<String> get modelExamples => [
         'anthropic/claude-3.5-sonnet',
         'anthropic/claude-3.5-sonnet:beta',
-        'openai/gpt-4-turbo',
         'openai/gpt-4o',
         'openai/gpt-4o-mini',
         'google/gemini-pro-1.5',
         'google/gemini-flash-1.5',
         'meta-llama/llama-3.1-70b',
-        'meta-llama/llama-3.1-405b',
         'deepseek/deepseek-chat',
       ];
+
+  @override
+  List<String> get supportedModels => [
+        'anthropic/claude-3.5-sonnet',
+        'anthropic/claude-3.5-sonnet:beta',
+        'anthropic/claude-3-haiku',
+        'openai/gpt-4o',
+        'openai/gpt-4o-mini',
+        'openai/chatgpt-4o',
+        'openai/gpt-4-turbo',
+        'google/gemini-pro-1.5',
+        'google/gemini-flash-1.5',
+        'meta-llama/llama-3.1-70b',
+        'meta-llama/llama-3.1-405b',
+        'meta-llama/llama-3.3-70b',
+        'deepseek/deepseek-chat',
+        'mistralai/mistral-7b',
+      ];
+
+  @override
+  bool isModelSupported(String modelName) {
+    // Проверяем формат: должен содержать '/'
+    if (!modelName.contains('/')) {
+      return false;
+    }
+
+    // Проверяем, что модель есть в списке популярных или соответствует формату
+    if (supportedModels.contains(modelName)) {
+      return true;
+    }
+
+    // Базовая проверка формата: provider/model-name
+    final parts = modelName.split('/');
+    if (parts.length != 2) return false;
+
+    final provider = parts[0];
+    final model = parts[1];
+
+    // Проверяем, что провайдер валидный
+    final validProviders = [
+      'anthropic', 'openai', 'google', 'meta-llama',
+      'deepseek', 'mistralai', 'cohere', 'perplexity',
+      '01-ai', 'nebius', 'nvidia', 'microsoft',
+    ];
+
+    if (!validProviders.contains(provider)) {
+      return false;
+    }
+
+    // Проверяем, что название модели не пустое
+    if (model.trim().isEmpty) {
+      return false;
+    }
+
+    return true;
+  }
+
+  @override
+  String getModelErrorMessage(String modelName) {
+    if (!modelName.contains('/')) {
+      return 'Модель OpenRouter должна иметь формат "провайдер/модель".\n'
+          'Пример: anthropic/claude-3.5-sonnet, openai/gpt-4o';
+    }
+
+    final parts = modelName.split('/');
+    if (parts.length != 2) {
+      return 'Неверный формат модели. Используйте формат "провайдер/модель".\n'
+          'Пример: anthropic/claude-3.5-sonnet';
+    }
+
+    return 'Модель "$modelName" не найдена в списке поддерживаемых.\n'
+        'Популярные модели: ${modelExamples.join(", ")}';
+  }
 
   @override
   Map<String, String> buildHeaders(String apiKey) {
@@ -64,6 +135,12 @@ class OpenRouterProvider implements AIProvider {
       'temperature': request.temperature,
       'max_tokens': request.maxTokens,
       if (request.stream) 'stream': request.stream,
+      // OpenRouter: предотвращаем добавление префиксов и модификацию ответа
+      'include_reasoning': false,
+      'provider': {
+        'order': ['DeepSeek', 'Google', 'Anthropic'],
+        'allow_fallbacks': false,
+      },
     };
   }
 }

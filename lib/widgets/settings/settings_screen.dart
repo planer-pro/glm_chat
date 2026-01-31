@@ -22,9 +22,11 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
   void initState() {
     super.initState();
     // Загружаем начальные значения асинхронно
-    Future.microtask(() {
+    Future.microtask(() async {
       _loadCurrentApiKey();
-      _loadModelName();
+      await _loadModelName();
+      // Загружаем список доступных моделей для текущего провайдера
+      await ref.read(settingsProvider.notifier).loadAvailableModels();
     });
   }
 
@@ -82,6 +84,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
   Future<void> _loadModelName() async {
     final modelName = ref.read(settingsProvider).modelName;
     _modelNameController.text = modelName;
+    print('[SettingsScreen._loadModelName] Загружена модель: "$modelName"');
   }
 
   Future<void> _saveApiKey() async {
@@ -292,6 +295,8 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                   _apiKeyController.clear();
                   _loadCurrentApiKey();
                   _loadModelName();
+                  // Загружаем список моделей для нового провайдера
+                  await ref.read(settingsProvider.notifier).loadAvailableModels();
                 }
               },
             ),
@@ -303,49 +308,42 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
               style: Theme.of(context).textTheme.titleLarge,
             ),
             const SizedBox(height: 16),
-            Autocomplete<String>(
-              optionsBuilder: (textEditingValue) {
-                return provider.modelExamples.where((model) =>
-                    model.toLowerCase().contains(textEditingValue.text.toLowerCase()));
-              },
-              onSelected: (selection) {
-                if (selection.isNotEmpty) {
-                  _modelNameController.text = selection;
-                  ref.read(settingsProvider.notifier).setModelName(selection);
+            DropdownButtonFormField<String>(
+              value: settingsState.modelName.isNotEmpty ? settingsState.modelName : null,
+              decoration: const InputDecoration(
+                labelText: 'Выберите модель',
+                border: OutlineInputBorder(),
+              ),
+              items: settingsState.availableModels.isEmpty
+                  ? []
+                  : settingsState.availableModels.map((model) {
+                      // Проверяем, является ли модель разделителем группы (начинается с ───)
+                      final bool isSeparator = model.startsWith('──');
+                      return DropdownMenuItem<String>(
+                        value: isSeparator ? null : model,
+                        enabled: !isSeparator,
+                        child: isSeparator
+                            ? Text(
+                                model,
+                                style: TextStyle(
+                                  color: Colors.white54,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              )
+                            : Text(model),
+                      );
+                    }).toList(),
+              onChanged: (value) {
+                if (value != null && value.isNotEmpty) {
+                  _modelNameController.text = value;
+                  ref.read(settingsProvider.notifier).setModelName(value);
+                  print('[SettingsScreen] Выбрана модель: "$value"');
                 }
-              },
-              fieldViewBuilder: (context, controller, focusNode, onSubmitted) {
-                return TextField(
-                  controller: _modelNameController,
-                  focusNode: focusNode,
-                  decoration: InputDecoration(
-                    labelText: 'Название модели',
-                    border: const OutlineInputBorder(),
-                    suffixIcon: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        IconButton(
-                          icon: const Icon(Icons.save),
-                          onPressed: () {
-                            final model = _modelNameController.text.trim();
-                            print('[SettingsScreen] Нажата кнопка сохранения модели: "$model"');
-                            if (model.isNotEmpty) {
-                              ref.read(settingsProvider.notifier).setModelName(model);
-                              _showSuccessSnackBar('Модель сохранена');
-                            } else {
-                              _showErrorSnackBar('Введите название модели');
-                            }
-                          },
-                        ),
-                      ],
-                    ),
-                  ),
-                );
               },
             ),
             const SizedBox(height: 8),
             Text(
-              'Примеры: ${provider.modelExamples.join(", ")}',
+              'Всего доступно моделей: ${settingsState.availableModels.where((m) => !m.startsWith('──')).length}',
               style: Theme.of(context).textTheme.bodySmall?.copyWith(
                 color: Colors.white54,
               ),
