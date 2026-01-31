@@ -26,6 +26,9 @@ flutter test
 
 # Analyze code
 flutter analyze
+
+# Format code
+dart format .
 ```
 
 ## Architecture Overview
@@ -100,7 +103,7 @@ Messages can be edited inline via the input field (no dialog):
 
 `ApiService` (lib/services/api_service.dart) handles all HTTP communication:
 - Throws `ApiException` for error cases (401, 429, 400, 5xx)
-- 60-second timeout configured in `ApiConstants.requestTimeout`
+- **Configurable timeout**: default 60 seconds in code, but uses settings value (120s default, range 30-300s)
 - Returns typed `ChatResponse` objects
 
 ### Secure Storage
@@ -176,7 +179,7 @@ Models have `toJson()` for serialization and factory constructors like `Message.
 API configuration in `lib/core/constants/api_constants.dart`:
 - Base URL: `https://open.bigmodel.cn/api/paas/v4`
 - Model: `glm-4.7`
-- Timeout: 120 seconds (configurable in settings, 30-300s range)
+- Timeout: configurable in settings (30-300s range, default 120s in UI, 60s in code)
 - Max tokens: 4096
 
 ## Theme
@@ -194,6 +197,7 @@ Material 3 dark theme configured in `lib/core/theme/app_theme.dart`. App uses `t
 **Chat Input Field** (`lib/widgets/chat/chat_input_field.dart`):
 - **ENTER** - Send message
 - **SHIFT+ENTER** - New line
+- **ESC** - Cancel editing mode
 - Supports multi-line input (up to 5 lines)
 - Auto-focuses after sending
 - Visual feedback during loading
@@ -208,11 +212,12 @@ Material 3 dark theme configured in `lib/core/theme/app_theme.dart`. App uses `t
 - Applied to ALL messages (user and assistant)
 
 **Request Timeout** (stored in secure storage):
-- Default: 120 seconds
+- Default: 120 seconds in UI settings
 - Range: 30-300 seconds (adjustable via slider)
 - Quick presets: 30s, 60s, 120s, 5min
 - Stored in `flutter_secure_storage` with key `request_timeout`
 - Used in API requests (configurable per request)
+- Code default: 60 seconds if not specified in settings
 
 **Settings Provider** (`lib/providers/settings_provider.dart`):
 - Manages API key, font size, and request timeout
@@ -220,7 +225,77 @@ Material 3 dark theme configured in `lib/core/theme/app_theme.dart`. App uses `t
 - Persists to `StorageService`
 - Loaded on app startup via `_loadSettings()`
 
+## Dependencies Status
+
+Актуальные версии пакетов (из pubspec.yaml):
+
+### State Management
+- flutter_riverpod: ^2.6.1
+- riverpod: ^2.6.1
+
+### HTTP & API
+- http: ^1.2.0
+
+### Markdown & Code
+- flutter_markdown_plus: ^1.0.7 (заменён flutter_markdown)
+- markdown: ^7.2.0
+- flutter_highlight: ^0.7.0
+- highlight: ^0.7.0
+
+### Storage
+- flutter_secure_storage: ^10.0.0
+
+### File Handling
+- file_picker: ^10.3.10
+- cross_file: ^0.3.5+2
+- image: ^4.2.0
+- mime: ^2.0.0
+
+### Utilities
+- uuid: ^4.0.0
+
+### Dev Dependencies
+- flutter_lints: ^6.0.0
+- lints: ^6.1.0
+
+**Статус:** Все зависимости в актуальном состоянии.
+
+## Code Style Guidelines
+
+### Обязательные требования:
+1. **Все комментарии на русском** - включая JSDoc для публичных API
+2. **Типизация** - избегать `dynamic`, использовать конкретные типы
+3. **Фигурные скобки** - всегда использовать для управляющих структур
+4. **Именование** - camelCase для переменных, PascalCase для классов
+
+### Форматирование:
+- Используйте `dart format .` для форматирования
+- Максимальная длина строки: 80 символов
+
+## Testing Strategy
+
+### Текущее состояние:
+- **1 тестовый файл:** `test/widget_test.dart`
+- **Покрытие:** Минимальное (базовый тест запуска приложения)
+
+### План развития:
+- [ ] Unit тесты для `ApiService`
+- [ ] Unit тесты для `StorageService`
+- [ ] Widget тесты для `MessageBubble`
+- [ ] Widget тесты для `ChatInputField`
+- [ ] Интеграционные тесты для потока сообщений
+
 ## Recent Changes
+
+### 2026-01-31: Безопасная прокрутка чата
+**Fix**: Исправлена ошибка "ScrollController not attached" при прокрутке чата.
+
+**Implementation**:
+- Метод `_scrollToBottom()` теперь использует `WidgetsBinding.instance.addPostFrameCallback()`
+- Заменён `Future.delayed()` на более надёжный механизм
+
+**Changes:**
+- Modified: `lib/widgets/chat/chat_screen.dart:249-256`
 
 ### 2026-01-31: API Timeout Settings & Performance Improvements
 **New Features**: Added configurable API timeout and improved loading indicators.
@@ -323,16 +398,16 @@ Material 3 dark theme configured in `lib/core/theme/app_theme.dart`. App uses `t
    - Интеграция с SessionManagerProvider
 
 **Dependencies Updated**:
-- flutter_riverpod: ^2.5.0 → ^3.2.0
-- riverpod: ^3.2.0 (новая зависимость)
-- flutter_markdown: ^0.7.0 → flutter_markdown_plus: ^0.7.0
-- flutter_secure_storage: ^9.2.0 → ^10.0.0
-- file_picker: ^8.0.0 → ^10.3.10
-- cross_file: ^0.3.4 → ^0.3.5+2
-- mime: ^1.0.0 → ^2.0.0
-- uuid: ^4.0.0 (новая зависимость)
-- flutter_lints: ^3.0.0 → ^6.0.0
-- lints: ^6.1.0 (новая зависимость)
+- flutter_riverpod: ^2.6.1
+- riverpod: ^2.6.1
+- flutter_markdown_plus: ^1.0.7 (заменил flutter_markdown)
+- flutter_secure_storage: ^10.0.0
+- file_picker: ^10.3.10
+- cross_file: ^0.3.5+2
+- mime: ^2.0.0
+- uuid: ^4.0.0
+- flutter_lints: ^6.0.0
+- lints: ^6.1.0
 
 **How it works**:
 1. При запуске загружаются сохранённые сессии
@@ -417,10 +492,10 @@ Material 3 dark theme configured in `lib/core/theme/app_theme.dart`. App uses `t
    - Sends images as base64 data URLs to API
 
 **Dependencies Added**:
-- `file_picker: ^8.0.0` - File selection dialog
-- `cross_file: ^0.3.4` - Cross-platform file handling
+- `file_picker: ^10.3.10` - File selection dialog
+- `cross_file: ^0.3.5+2` - Cross-platform file handling
 - `image: ^4.2.0` - Image compression
-- `mime: ^1.0.0` - MIME type detection
+- `mime: ^2.0.0` - MIME type detection
 
 **How it works**:
 1. User clicks 📎 button in chat input field
@@ -489,87 +564,61 @@ Material 3 dark theme configured in `lib/core/theme/app_theme.dart`. App uses `t
 
 ## Known Issues & Technical Debt
 
-### Critical Issues (2026-01-28)
+### Critical (Критические проблемы)
 
-1. **Тестовый файл ошибочен** - `test/widget_test.dart:7`
-   - Проблема: отсутствует импорт `flutter_riverpod/flutter_riverpod.dart`
-   - Исправление: добавить импорт `import 'package:flutter_riverpod/flutter_riverpod.dart';`
-
-2. **Типизация в MessageBubble** - `lib/widgets/chat/message_bubble.dart`
+1. **Типизация `dynamic` в MessageBubble** - `lib/widgets/chat/message_bubble.dart:119,149`
    - Проблема: методы `_buildAttachedFile` и `_buildFileIcon` используют `dynamic file` вместо `AttachedFile`
+   - Риск: потеря типобезопасности, потенциальные ошибки runtime
    - Исправление: заменить `dynamic` на `AttachedFile`
 
-3. **Неиспользуемый импорт** - `lib/widgets/chat/chat_screen.dart:3`
-   - Проблема: импортируется `message.dart`, но не используется
-   - Исправление: удалить импорт
+### High (Высокий приоритет - производительность и безопасность)
 
-### Performance Issues
+2. **Лишние пересборки в ChatInputField** - `lib/widgets/chat/chat_input_field.dart`
+   - Места: строки 64, 89, 118, 149
+   - Проблема: частые вызовы `setState` могут влиять на производительность
+   - Решение: оптимизировать вызовы setState, объединять обновления состояния
 
-4. **Лишние пересборки** в `ChatInputField` при добавлении файлов
-   - Частые вызовы `setState` могут влиять на производительность
-   - Решение: использовать `setState` только при необходимости
-
-5. **Большие файлы**
-   - Нет ограничения на размер загружаемых файлов
+3. **Большие файлы без ограничения размера**
+   - Проблема: нет валидации размера в `_pickFiles()` (chat_input_field.dart:40)
    - Риск: утечка памяти при загрузке очень больших файлов
-   - Решение: добавить ограничение (например, 10MB)
+   - Решение: добавить ограничение 10MB с понятным сообщением пользователю
 
-6. **Блокирующие операции**
-   - Чтение файлов в `getTextContent()` может блокировать UI поток
+4. **Блокирующие операции ввода-вывода** - `lib/data/models/attached_file.dart:140-167`
+   - Проблема: `getTextContent()` блокирует UI поток при чтении файлов
    - Решение: использовать `compute()` для чтения в изолированном потоке
 
-### Deprecated APIs
+5. **Отсутствие валидации файлов** (Security)
+   - Проблема: загрузка произвольных файлов без проверки типа и размера
+   - Риск: потенциальная уязвимость безопасности
+   - Решение: добавить валидацию типа MIME и размера файла
 
-7. **Устаревшие API клавиатуры** - `lib/widgets/chat/chat_input_field.dart`
-   - `RawKeyEvent`, `RawKeyDownEvent` → использовать `KeyEvent`, `KeyDownEvent`
+6. **Логирование чувствительных данных** (Security) - `lib/data/models/attached_file.dart:144,181`
+   - Проблема: логируются имена файлов (могут содержать чувствительную информацию)
+   - Решение: убрать или анонимизировать логирование имён файлов
+
+### Medium (Средний приоритет - deprecated APIs)
+
+7. **Устаревшие API клавиатуры** - `lib/widgets/chat/chat_input_field.dart:161`
+   - `RawKeyEvent` → использовать `KeyEvent`
+   - `RawKeyDownEvent` → использовать `KeyDownEvent`
    - `isShiftPressed` → использовать `HardwareKeyboard.instance.isShiftPressed`
    - `RawKeyboardListener` → использовать `KeyboardListener`
 
 8. **Устаревший API цветов** - несколько файлов
    - `withOpacity()` → использовать `.withValues()`
-   - Затронуты: `chat_input_field.dart`, `chat_screen.dart`
+   - Затронуты: session_drawer.dart, session_list_item.dart, chat_screen.dart, chat_input_field.dart:223, 313
 
-### Code Quality
+### Low (Низкий приоритет - качество кода)
 
-9. **Отсутствие блоков** - `lib/data/models/attached_file.dart`
-   - Строки 81, 93, 99, 105, 109, 113 - управляющие структуры без фигурных скобок
-   - Рекомендация: добавлять блоки для улучшения читаемости
+9. **Отсутствие фигурных скобок** - `lib/data/models/attached_file.dart`
+   - Строки: 79-83, 94-96, 101-103, 108-110, 113-114
+   - Проблема: управляющие структуры без фигурных скобок
+   - Решение: добавить блоки для улучшения читаемости
 
-10. **Комментарии не на русском**
-    - Некоторые файлы содержат комментарии на английском (например, `api_constants.dart`)
-    - Требование согласно CLAUDE.md: все комментарии на русском
-
-### Dependencies
-
-11. **Устаревшие пакеты**
-    - 18 пакетов имеют более новые версии
-    - Пакет `flutter_markdown` прекращён, заменён на `flutter_markdown_plus`
-
-### Testing
-
-12. **Минимальное покрытие тестами**
-    - Только один тестовый файл
+10. **Минимальное покрытие тестами**
+    - Только 1 тестовый файл (`test/widget_test.dart`)
     - Нет тестов для API сервисов, провайдеров, обработки ошибок
-    - Рекомендация: добавить unit и widget тесты
+    - Решение: добавить unit и widget тесты
 
-### Security Considerations
-
-13. **Логирование чувствительных данных**
-    - `attached_file.dart:174` и `message.dart:51` логируются имена файлов
-    - Риск: имена файлов могут содержать чувствительную информацию
-    - Решение: убрать или анонимизировать логирование
-
-14. **Нет валидации файлов**
-    - Загрузка произвольных файлов без ограничений
-    - Риск: потенциальная уязвимость безопасности
-    - Решение: добавить валидацию типа и размера
-
-### Architecture
-
-15. **Потенциальная утечка памяти** в `ChatNotifier`
-    - `StreamSubscription? _streamSubscription` может быть не отменён
-    - Решение: проверить dispose на null
-
-16. **Race condition**
-    - При быстрой последовательной отправке сообщений возможны конфликты
-    - Deep copy в `chat_provider.dart:111` может не предотвратить все проблемы
+### Примечание
+Все проблемы из списка 2026-01-28 были проверены и обновлены. Устаревшие проблемы удалены.
