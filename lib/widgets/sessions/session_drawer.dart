@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../providers/session_provider.dart';
+import '../../../providers/chat_provider.dart';
 import 'session_list_item.dart';
 
 /// Боковое меню с историей сессий
@@ -240,6 +241,3 @@ class SessionDrawer extends ConsumerWidget {
     }
   }
 }
-
-// Импортируем chatProvider для использования в _createNewChat и _loadSession
-import '../../../providers/chat_provider.dart';
