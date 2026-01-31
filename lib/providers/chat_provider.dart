@@ -76,8 +76,11 @@ class ChatNotifier extends StateNotifier<ChatState> {
   Future<void> _initializeSession() async {
     final sessionManager = _ref.read(sessionManagerProvider.notifier);
 
-    // Ждём завершения загрузки сессий
-    await Future.delayed(const Duration(milliseconds: 100));
+    // Ждём завершения загрузки сессий (проверяем isLoading)
+    await sessionManager.loadSessions();
+
+    // Ждём немного для обновления состояния
+    await Future.delayed(const Duration(milliseconds: 50));
 
     // Получаем активную сессию
     final activeSession = sessionManager.getActiveSession();
@@ -88,10 +91,12 @@ class ChatNotifier extends StateNotifier<ChatState> {
         messages: activeSession.messages,
         currentSessionId: activeSession.id,
       );
+      print('[ChatNotifier._initializeSession] Загружена сессия: ${activeSession.title}');
     } else {
       // Создаём новую сессию
       final sessionId = await sessionManager.createSession();
       state = state.copyWith(currentSessionId: sessionId);
+      print('[ChatNotifier._initializeSession] Создана новая сессия: $sessionId');
     }
   }
 
@@ -198,13 +203,19 @@ class ChatNotifier extends StateNotifier<ChatState> {
   /// Сохранение текущей сессии
   Future<void> _saveCurrentSession() async {
     final sessionId = state.currentSessionId;
-    if (sessionId == null) return;
+    if (sessionId == null) {
+      print('[ChatNotifier._saveCurrentSession] Нет sessionId, пропускаем сохранение');
+      return;
+    }
 
     try {
       final sessionManager = _ref.read(sessionManagerProvider.notifier);
+      print('[ChatNotifier._saveCurrentSession] Сохранение сессии $sessionId, сообщений: ${state.messages.length}');
+
       final currentSession = sessionManager.state.sessions
           .firstWhere((s) => s.id == sessionId, orElse: () {
         // Если сессия не найдена, создаём новую
+        print('[ChatNotifier._saveCurrentSession] Сессия не найдена в списке, создаём новую');
         return ChatSession(
           id: sessionId,
           messages: state.messages,
@@ -222,11 +233,13 @@ class ChatNotifier extends StateNotifier<ChatState> {
       if (wasEmpty && hasUserMessages) {
         // Обновляем заголовок на основе первого сообщения пользователя
         updatedSession = updatedSession.withUpdatedTitle();
+        print('[ChatNotifier._saveCurrentSession] Обновлён заголовок: ${updatedSession.title}');
       }
 
       await sessionManager.updateSession(updatedSession);
+      print('[ChatNotifier._saveCurrentSession] Сессия сохранена успешно');
     } catch (e) {
-      print('Ошибка при сохранении сессии: $e');
+      print('[ChatNotifier._saveCurrentSession] Ошибка при сохранении сессии: $e');
     }
   }
 
